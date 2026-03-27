@@ -1,0 +1,2 @@
+&INPUT   MT=3000, DT=0.01, FMIN=0.35, FMAX=3.25, S1_NAME='W01-comp_r.dat', S2_NAME='W01-real_r.dat', NC = 3,
+         IS_S2_REFERENCE = T, LOCAL_NORM = F/

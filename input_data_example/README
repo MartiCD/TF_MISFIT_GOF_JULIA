@@ -1,0 +1,20 @@
+File "HF_TF-MISFIT_GOF" contains the input parameters
+for the computation of misfits and goodness-of-fit criteria (GOFs)
+between the two signals specified
+in the files with "S1_NAME" and "S2_NAME".
+
+In this example you can find a part of the data 
+that were used in our GJI 2009 paper:
+- both signals are three-component signals, 
+- signal with "S2_NAME" is considered as the reference one,
+("S1_NAME" signal is the result of numerical modeling 
+and the real data are used as "S2_NAME" signal)
+- misfits and GOFs are globally normalized 
+
+See also USERS’S GUIDE TO TF_MISFIT_GOF_CRITERIA in the file
+"TF_MISFIT_GOF_CRITERIA_Users_Guide.doc".
+
+
+
+
+

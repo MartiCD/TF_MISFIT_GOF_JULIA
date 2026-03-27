@@ -1,0 +1,20 @@
+This Matlabs script is a simple example of plotting of 
+goodness-of-fit criteria (GOFs) results.
+----------------------------------------------------------------
+It plots time-frequency GOFs results TFEG1-TFEG3 (computed with 
+program "TF_MISFITS_GOF_CRITERIA" for each component of the signal) 
+in Matlab Figures and it also produces png (or tiff) files 
+"TFEG1.png" ("TFEG1.tiff").
+"TFEG2.png" ("TFEG2.tiff")
+"TFEG3.png" ("TFEG3.tiff")
+
+In the attached png files  you can see what you should obtain 
+after running the "PlotTFEG.m" Matlab script. 
+
+In this example you can find a part of data 
+that were used in our GJI 2009 paper:
+- both signals are three-component signals, 
+- signal with "S2_NAME" is considered as the reference one
+("S1_NAME" signal is the result of numerical modeling 
+and the real data are used as "S2_NAME" signal),
+- GOFs are globally normalized
