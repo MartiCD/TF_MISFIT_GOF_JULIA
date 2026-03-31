@@ -2,7 +2,7 @@
 
 Julia implementation of the **time-frequency misfit and goodness-of-fit (GOF) criteria** for comparing time signals, based on the methodology of Kristeková et al. (2006, 2009).
 
-This project is a port of the original Fortran code, extended with Python and Julia tools for visualization and analysis.
+This project provides a **Julia reimplementation of the original Fortran code**, extended with tools for visualization and analysis in Python and Julia.
 
 ---
 
@@ -10,24 +10,24 @@ This project is a port of the original Fortran code, extended with Python and Ju
 
 This code computes **time-frequency misfits** between two signals using:
 
-- Continuous Wavelet Transform (CWT) with Morlet wavelet  
-- Envelope and phase misfit measures  
-- Time-frequency, time-dependent, and frequency-dependent diagnostics  
+* Continuous Wavelet Transform (CWT) with Morlet wavelet
+* Envelope and phase misfit measures
+* Time-frequency, time-dependent, and frequency-dependent diagnostics
 
-It produces both:
+It produces:
 
-- **Misfit measures** (TFEM, TFPM, etc.)  
-- **Goodness-of-fit (GOF)** criteria  
+* **Misfit measures** (TFEM, TFPM, etc.)
+* **Goodness-of-fit (GOF)** criteria
 
 ---
 
 ## ⚙️ Features
 
-- Continuous wavelet transform (Morlet-based)  
-- Global and local normalization  
-- Time-frequency misfit analysis  
-- Output compatible with MATLAB / Python plotting scripts  
-- Julia-native implementation  
+* Continuous wavelet transform (Morlet-based)
+* Global and local normalization
+* Time-frequency misfit analysis
+* Output compatible with MATLAB / Python plotting scripts
+* Julia-native implementation
 
 ---
 
@@ -35,10 +35,13 @@ It produces both:
 
 ```
 .
-├── tf_misfit_port.jl        # Main Julia implementation
-├── plotting/                # Python plotting scripts
-├── input/                   # Example input files
-├── output/                  # Generated results (optional)
+├── src/                     # Core Julia implementation
+├── scripts/                 # Execution / pipeline scripts
+├── input_data_example/      # Example input datasets
+├── ricker_wavelet_example/  # Synthetic signal examples
+├── plotting_example/        # Visualization scripts (Python)
+├── output_data/             # Generated results (ignored by git)
+├── runs/                    # Batch runs (ignored by git)
 ├── README.md
 ```
 
@@ -48,44 +51,56 @@ It produces both:
 
 ### 1. Requirements
 
-- Julia ≥ 1.8  
-- (Optional) Python with:
-  - numpy  
-  - matplotlib  
+* Julia ≥ 1.8
+
+(Optional) for visualization:
+
+* Python ≥ 3.8
+
+  * numpy
+  * matplotlib
 
 ---
 
-### 2. Prepare input files
-
-Create a control file:
-
-```
-HF_TF-MISFIT_GOF
-```
-
-Example:
-
-```
-&INPUT
-  S1_NAME = 'signal1.dat',
-  S2_NAME = 'signal2.dat',
-  NC = 1,
-  MT = 3000,
-  DT = 0.01,
-  FMIN = 0.1,
-  FMAX = 10.0,
-  IS_S2_REFERENCE = .FALSE.,
-  LOCAL_NORM = .FALSE.
-/
-```
-
----
-
-### 3. Run the code
+### 2. Install Julia environment
 
 ```bash
-julia tf_misfit_port.jl HF_TF-MISFIT_GOF
+julia
+]
+activate .
+instantiate
 ```
+
+---
+
+### 3. Minimal example
+
+Run the code using the provided example:
+
+```bash
+julia src/tf_misfit_port.jl input_data_example/HF_TF-MISFIT_GOF
+```
+
+---
+
+### 4. Visualization
+
+Example plotting:
+
+```bash
+python plotting_example/PlotTFEM.py
+python plotting_example/PlotTFEG.py
+```
+
+---
+
+## 📁 Data
+
+* `input_data_example/` → small datasets for testing and reproducibility
+* `ricker_wavelet_example/` → synthetic signals for demonstration
+* `data/` → (optional) larger datasets (not included in the repository)
+
+⚠️ Large datasets and generated outputs are not version-controlled.
 
 ---
 
@@ -94,37 +109,25 @@ julia tf_misfit_port.jl HF_TF-MISFIT_GOF
 The code generates multiple `.DAT` files:
 
 ### Time-frequency
-- `TFEMx.DAT` – envelope misfit  
-- `TFPMx.DAT` – phase misfit  
-- `TFEGx.DAT` – GOF (envelope)  
-- `TFPGx.DAT` – GOF (phase)  
+
+* `TFEMx.DAT` – envelope misfit
+* `TFPMx.DAT` – phase misfit
+* `TFEGx.DAT` – GOF (envelope)
+* `TFPGx.DAT` – GOF (phase)
 
 ### Time-dependent
-- `TEMx.DAT`, `TPMx.DAT`  
-- `TEGx.DAT`, `TPGx.DAT`  
+
+* `TEMx.DAT`, `TPMx.DAT`
+* `TEGx.DAT`, `TPGx.DAT`
 
 ### Frequency-dependent
-- `FEMx.DAT`, `FPMx.DAT`  
-- `FEGx.DAT`, `FPGx.DAT`  
+
+* `FEMx.DAT`, `FPMx.DAT`
+* `FEGx.DAT`, `FPGx.DAT`
 
 ### Summary
-- `MISFIT-GOF.DAT`  
 
----
-
-## 📈 Visualization
-
-Python scripts can be used to plot:
-
-- Time-frequency GOF maps  
-- Time-frequency misfit maps  
-
-Example:
-
-```bash
-python PlotTFEM.py
-python PlotTFEG.py
-```
+* `MISFIT-GOF.DAT`
 
 ---
 
@@ -132,41 +135,68 @@ python PlotTFEG.py
 
 Based on:
 
-- Kristeková, M., Kristek, J., Moczo, P., Day, S. M. (2006)  
-  *Misfit Criteria for Quantitative Comparison of Seismograms*  
+* Kristeková, M., Kristek, J., Moczo, P., Day, S. M. (2006)
+  *Misfit Criteria for Quantitative Comparison of Seismograms*
 
-- Kristeková, M., Kristek, J., Moczo, P. (2009)  
-  *Time-frequency misfit and goodness-of-fit criteria for quantitative comparison of time signals*  
+* Kristeková, M., Kristek, J., Moczo, P. (2009)
+  *Time-frequency misfit and goodness-of-fit criteria for quantitative comparison of time signals*
 
 ---
 
 ## ⚠️ Notes
 
-- Output files are **not rectangular tables** → must be read sequentially  
-- Time-frequency files are logically `(NF_TF × MT)`  
-- Large output files are expected  
+* Output files are **not rectangular tables** → must be read sequentially
+* Time-frequency arrays are logically structured as `(NF_TF × MT)`
+* Large output files are expected
+
+---
+
+## ⚠️ Repository policy
+
+* `output_data/` and `runs/` are **not tracked** (see `.gitignore`)
+* Only lightweight example data is included
+* Generated figures and intermediate files are excluded
 
 ---
 
 ## 🧪 Typical applications
 
-- Numerical dispersion and dissipation analysis  
-- Wave propagation validation  
-- Seismology waveform comparison  
-- Signal processing diagnostics  
+* Numerical dispersion and dissipation analysis
+* Wave propagation validation
+* Seismology waveform comparison
+* Signal processing diagnostics
+
+---
+
+## 📚 Citation
+
+If you use this code, please cite:
+
+Kristeková et al. (2006, 2009)
+
+and optionally this repository:
+
+```
+@software{tf_misfit_julia,
+  author = {Martí Circuns-Duxans},
+  title = {TF Misfit GOF Julia},
+  year = {2026},
+  url = {https://github.com/MartiCD/TF_MISFIT_GOF_JULIA}
+}
+```
 
 ---
 
 ## 👤 Author
 
-**Your Name**  
-Your Affiliation  
+**Your Name**
+Your Affiliation
 
-📧 your.email@domain.com  
-🌐 https://your-website.com  
+📧 [marti.circuns@bsc.es](mailto:marti.circuns@bsc.es)
+🌐 https://sites.google.com/view/marticircuns
 
-Adapted from the original Fortran95 guide by  
-Miriam Kristeková, Jozef Kristek, and Peter Moczo  
+Adapted from the original Fortran95 implementation by
+Miriam Kristeková, Jozef Kristek, and Peter Moczo
 
 ---
 
