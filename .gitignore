@@ -43,7 +43,7 @@ env/
 output_data/
 runs/
 ricker_wavelet_example/
-data/probe_singal_*.csv
+data/probe_signal_*.csv
 
 # =========================
 # Figures generades (excepte exemples)
