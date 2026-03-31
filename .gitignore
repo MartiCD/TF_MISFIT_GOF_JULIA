@@ -42,6 +42,7 @@ env/
 # =========================
 output_data/
 runs/
+ricker_wavelet_example/
 
 # =========================
 # Figures generades (excepte exemples)
@@ -53,7 +54,7 @@ runs/
 
 # Manté figures d'exemple
 !plotting_example/*.png
-!ricker_wavelet_example/*.png
+
 
 # =========================
 # Altres
