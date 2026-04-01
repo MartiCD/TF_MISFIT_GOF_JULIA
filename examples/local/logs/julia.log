@@ -1,0 +1,10 @@
+mt = 16103
+nc = 1
+nf_tf = 2294
+NF = 65536
+3D Float64 array ~ 281.83 MB
+3D ComplexF64 array ~ 563.66 MB
+Using LOCAL normalization
+Computing FFTs and CWTs
+Finished CWT for component 1
+Finished TF misfit computation
