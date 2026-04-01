@@ -42,7 +42,7 @@ params = {
 }
 plt.rcParams.update(params)
 
-
+print("Starting Plot.py", flush=True)
 print("---------------------------------------------------")
 print("       Python script for plotting TFPM misfits      ")
 
@@ -112,7 +112,7 @@ def read_misfit_file(filename="MISFIT-GOF.DAT"):
     }
 
 
-def read_fortran_matrix(filename, nrows, ncols):
+def read_fortran_matrix(filename, nrows, ncols, dtype=np.float32):
     """
     Read a Fortran-written matrix from ASCII, ignoring line wrapping.
     """
@@ -155,14 +155,22 @@ col_max_tic = (np.floor(tfpm_max * 10.0) - 1.0) / 10.0
 
 df = (fmax - fmin) / (nfreq - 1)
 
-tfem = read_fortran_matrix(input_dir / "TFEM1.DAT", nfreq, n)
-tfpm = read_fortran_matrix(input_dir / "TFPM1.DAT", nfreq, n)
-fem = np.loadtxt(input_dir / "FEM1.DAT")
-fpm = np.loadtxt(input_dir / "FPM1.DAT")
-tem = np.loadtxt(input_dir / "TEM1.DAT")
-tpm = np.loadtxt(input_dir / "TPM1.DAT")
-signal1 = np.loadtxt(input_dir / "S1.DAT")
-signal2 = np.loadtxt(input_dir / "S2.DAT")
+print("Reading TFEM...", flush=True)
+tfem = read_fortran_matrix(input_dir / "TFEM1.DAT", nfreq, n, dtype=np.float32)
+print("Reading TFPM...", flush=True)
+tfpm = read_fortran_matrix(input_dir / "TFPM1.DAT", nfreq, n, dtype=np.float32)
+print("Reading FEM...", flush=True)
+fem = np.loadtxt(input_dir / "FEM1.DAT", dtype=np.float32)
+print("Reading FPM...", flush=True)
+fpm = np.loadtxt(input_dir / "FPM1.DAT", dtype=np.float32)
+print("Reading TEM...", flush=True)
+tem = np.loadtxt(input_dir / "TEM1.DAT", dtype=np.float32)
+print("Reading TPM...", flush=True)
+tpm = np.loadtxt(input_dir / "TPM1.DAT", dtype=np.float32)
+print("Reading SINGNAL1...", flush=True)
+signal1 = np.loadtxt(input_dir / "S1.DAT", dtype=np.float32)
+print("Reading SINGNAL2...", flush=True)
+signal2 = np.loadtxt(input_dir / "S2.DAT", dtype=np.float32)
 
 
 print("Data read successfully. Ready to plot.")
@@ -190,20 +198,20 @@ else:
 # ------------------------------------------------------------
 # Convert to percent
 # ------------------------------------------------------------
-tfem_pct = 100.0 * tfem
-tfpm_pct = 100.0 * tfpm
-fem_pct  = 100.0 * fem
-fpm_pct  = 100.0 * fpm
-tem_pct  = 100.0 * tem
-tpm_pct  = 100.0 * tpm
+tfem *= 100.0
+tfpm *= 100.0
+fem *= 100.0
+fpm *= 100.0
+tem *= 100.0
+tpm *= 100.0
 
 # ------------------------------------------------------------
 # Color normalization
 # ------------------------------------------------------------
 pct = 99.5
 
-tfem_vlim = np.nanpercentile(np.abs(tfem_pct), pct)
-tfpm_vlim = np.nanpercentile(np.abs(tfpm_pct), pct)
+tfem_vlim = np.nanpercentile(np.abs(tfem), pct)
+tfpm_vlim = np.nanpercentile(np.abs(tfpm), pct)
 
 if not np.isfinite(tfem_vlim) or tfem_vlim == 0:
     tfem_vlim = 1.0
@@ -285,34 +293,33 @@ ax_tpm  = fig.add_subplot(gs_bot[1, 1], sharex=ax_tfem)
 # ------------------------------------------------------------
 # TF panels
 # ------------------------------------------------------------
-T, F = np.meshgrid(time, freq)
 
 if not local_norm:
     im1 = ax_tfem.pcolormesh(
-        T, F, tfem_pct,
+        time, freq, tfem,
         shading="auto",
         cmap="RdBu_r",
         norm=tfem_norm
     )
 
     im2 = ax_tfpm.pcolormesh(
-        T, F, tfpm_pct,
+        time, freq, tfpm,
         shading="auto",
         cmap="RdBu_r",
         norm=tfpm_norm
     )
 else:
     im1 = ax_tfem.pcolormesh(
-        T, F, tfem_pct,
+        time, freq, tfem,
         shading="auto",
-        cmap="Spectral_r",
+        cmap="bwr",
         norm=tfem_norm
     )
 
     im2 = ax_tfpm.pcolormesh(
-        T, F, tfpm_pct,
+        time, freq, tfpm,
         shading="auto",
-        cmap="Spectral_r",
+        cmap="bwr",
         norm=tfpm_norm
     )
 
@@ -320,8 +327,8 @@ else:
 # ------------------------------------------------------------
 # Left marginal frequency plots
 # ------------------------------------------------------------
-ax_fem.plot(fem_pct, freq, color="k", lw=1.0)
-ax_fpm.plot(fpm_pct, freq, color="k", lw=1.0)
+ax_fem.plot(fem, freq, color="k", lw=1.0)
+ax_fpm.plot(fpm, freq, color="k", lw=1.0)
 
 for ax in (ax_fem, ax_fpm):
     ax.set_yscale("log")
@@ -370,8 +377,8 @@ ax_fpm.text(-0.62, 1.02, r"[Hz]", transform=ax_fpm.transAxes, fontsize=18)
 # ------------------------------------------------------------
 # Time marginals
 # ------------------------------------------------------------
-ax_tem.plot(time, tem_pct, color="k", lw=1.0)
-ax_tpm.plot(time, tpm_pct, color="k", lw=1.0)
+ax_tem.plot(time, tem, color="k", lw=1.0)
+ax_tpm.plot(time, tpm, color="k", lw=1.0)
 
 ax_tem.text(0.98, 0.72, r"$TEM$", transform=ax_tem.transAxes,
             ha="right", fontsize=18)
@@ -430,5 +437,6 @@ else:
 fig.subplots_adjust(bottom=0.08)
 
 output_path = fig_dir / f"tf_misfit_{input_dir.name}.png"
-plt.savefig(output_path,  bbox_inches="tight", pad_inches=0.08, dpi=300)
+fig.savefig(output_path,  bbox_inches="tight", pad_inches=0.08, dpi=300)
+plt.close(fig)
 print(f"Figure saved to: {output_path}")
