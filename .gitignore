@@ -41,6 +41,7 @@ env/
 # Outputs generats (NO versionar)
 # =========================
 input_data_example/
+plotting_example/
 output_data/
 runs/
 ricker_wavelet_example/
@@ -54,8 +55,6 @@ data/probe_signal_*.csv
 *.jpeg
 *.pdf
 
-# Manté figures d'exemple
-!plotting_example/*.png
 
 
 # =========================

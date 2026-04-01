@@ -37,8 +37,7 @@ It produces:
 .
 ├── src/                     # Core Julia implementation
 ├── scripts/                 # Execution / pipeline scripts
-├── input_data_example/      # Example input datasets
-├── ricker_wavelet_example/  # Synthetic signal examples
+├── examples                 # Examples datasets
 ├── plotting_example/        # Visualization scripts (Python)
 ├── output_data/             # Generated results (ignored by git)
 ├── runs/                    # Batch runs (ignored by git)
@@ -189,10 +188,11 @@ and optionally this repository:
 
 ## 👤 Author
 
-**Your Name**
-Your Affiliation
+**Martí Circuns-Duxans**
+Barcelona Supercomputing Center (BSC-CNS)
 
 📧 [marti.circuns@bsc.es](mailto:marti.circuns@bsc.es)
+
 🌐 https://sites.google.com/view/marticircuns
 
 Adapted from the original Fortran95 implementation by
@@ -202,4 +202,4 @@ Miriam Kristeková, Jozef Kristek, and Peter Moczo
 
 ## 📄 License
 
-(Add your license here, e.g. MIT License)
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
