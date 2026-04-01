@@ -43,7 +43,7 @@ env/
 input_data_example/
 plotting_example/
 output_data/
-examples/
+examples/*
 runs/
 ricker_wavelet_example/
 data/probe_signal_*.csv
