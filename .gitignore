@@ -38,31 +38,30 @@ env/
 *.out
 
 # =========================
-# Outputs generats (NO versionar)
-# =========================
-input_data_example/
-plotting_example/
-output_data/
-examples/*
-runs/
-ricker_wavelet_example/
-data/probe_signal_*.csv
-
-# =========================
 # Figures generades (excepte exemples)
 # =========================
 *.png
 *.jpg
 *.jpeg
 *.pdf
+*.DAT
+*.dat 
 
 # =========================
-#
+# Outputs generats (NO versionar)
 # =========================
+input_data_example/
+plotting_example/
+output_data/
+
+# Ignore everything inside examples except PNGs
+examples/*
 !examples/**/
 !examples/**/*.png
+!examples/**/HF_TF-MISFIT_GOF 
+!examples/**/MISFIT-GOF.DAT
+!examples/**/*.log
 
-# =========================
-# Altres
-# =========================
-*~
+runs/
+ricker_wavelet_example/
+data/probe_signal_*.csv
