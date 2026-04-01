@@ -1,0 +1,49 @@
+Starting Plot.py
+---------------------------------------------------
+       Python script for plotting TFPM misfits      
+2294 16103 0.0006209280133600004 1
+Reading TFEM...
+Reading TFPM...
+Reading FEM...
+Reading FPM...
+Reading TEM...
+Reading TPM...
+Reading SINGNAL1...
+Reading SINGNAL2...
+/home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/scripts/Plot.py:312: MatplotlibDeprecationWarning: Auto-removal of grids by pcolor() and pcolormesh() is deprecated since 3.5 and will be removed two minor releases later; please call grid(False) first.
+  im1 = ax_tfem.pcolormesh(
+/home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/scripts/Plot.py:319: MatplotlibDeprecationWarning: Auto-removal of grids by pcolor() and pcolormesh() is deprecated since 3.5 and will be removed two minor releases later; please call grid(False) first.
+  im2 = ax_tfpm.pcolormesh(
+/home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/scripts/Plot.py:425: MatplotlibDeprecationWarning: Auto-removal of grids by pcolor() and pcolormesh() is deprecated since 3.5 and will be removed two minor releases later; please call grid(False) first.
+  cb1 = fig.colorbar(im1, cax=cax1)
+/home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/scripts/Plot.py:431: MatplotlibDeprecationWarning: Auto-removal of grids by pcolor() and pcolormesh() is deprecated since 3.5 and will be removed two minor releases later; please call grid(False) first.
+  cb2 = fig.colorbar(im2, cax=cax2)
+Data read successfully. Ready to plot.
+---------------------------------------------------
+TFEM color limit = ±7.65e+08 %
+TFPM color limit = ±98.3 %
+LOCAL_NORM       = True
+Figure saved to: /home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/runs/2026-04-01_001/figures/tf_misfit_work.png
+	Command being timed: "python3 /home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/scripts/Plot.py /home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/runs/2026-04-01_001/work /home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/runs/2026-04-01_001/figures true"
+	User time (seconds): 69.76
+	System time (seconds): 28.10
+	Percent of CPU this job got: 101%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:36.85
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 6652516
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 392
+	Minor (reclaiming a frame) page faults: 6983825
+	Voluntary context switches: 2450
+	Involuntary context switches: 747
+	Swaps: 0
+	File system inputs: 3203568
+	File system outputs: 1448
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

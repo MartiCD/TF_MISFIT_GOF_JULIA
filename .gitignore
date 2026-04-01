@@ -1,0 +1,67 @@
+# =========================
+# OS / Editors
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# =========================
+# Julia
+# =========================
+*.ji
+*.so
+*.dll
+*.dylib
+
+# IMPORTANT:
+# Manté Project.toml però ignora Manifest si vols flexibilitat
+# (descomenta si NO vols fixar versions exactes)
+# Manifest.toml
+
+# =========================
+# Python (si hi ha exemples)
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+env/
+
+# =========================
+# Logs / temporals
+# =========================
+*.log
+*.tmp
+*.out
+
+# =========================
+# Figures generades (excepte exemples)
+# =========================
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.DAT
+*.dat 
+
+# =========================
+# Outputs generats (NO versionar)
+# =========================
+input_data_example/
+plotting_example/
+output_data/
+
+# Ignore everything inside examples except PNGs
+examples/*
+!examples/**/
+!examples/**/*.png
+!examples/**/HF_TF-MISFIT_GOF 
+!examples/**/MISFIT-GOF.DAT
+!examples/**/*.log
+
+runs/
+ricker_wavelet_example/
+data/probe_signal_*.csv

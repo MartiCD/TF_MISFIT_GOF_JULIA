@@ -1,0 +1,48 @@
+Starting Plot.py
+---------------------------------------------------
+       Python script for plotting TFPM misfits      
+2294 16103 0.0006209280133600004 1
+Reading TFEM...
+Reading TFPM...
+Reading FEM...
+Reading FPM...
+Reading TEM...
+Reading TPM...
+Reading SINGNAL1...
+Reading SINGNAL2...
+/home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/scripts/Plot.py:298: MatplotlibDeprecationWarning: Auto-removal of grids by pcolor() and pcolormesh() is deprecated since 3.5 and will be removed two minor releases later; please call grid(False) first.
+  im1 = ax_tfem.pcolormesh(
+/home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/scripts/Plot.py:305: MatplotlibDeprecationWarning: Auto-removal of grids by pcolor() and pcolormesh() is deprecated since 3.5 and will be removed two minor releases later; please call grid(False) first.
+  im2 = ax_tfpm.pcolormesh(
+/home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/scripts/Plot.py:420: MatplotlibDeprecationWarning: Auto-removal of grids by pcolor() and pcolormesh() is deprecated since 3.5 and will be removed two minor releases later; please call grid(False) first.
+  cb = fig.colorbar(im1, cax=cax)
+Data read successfully. Ready to plot.
+---------------------------------------------------
+TFEM color limit = ±0.0577 %
+TFPM color limit = ±0.0227 %
+LOCAL_NORM       = False
+Shared color limit = ±0.0577 %
+Figure saved to: /home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/runs/2026-04-01_001/figures/tf_misfit_work.png
+	Command being timed: "python3 /home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/scripts/Plot.py /home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/runs/2026-04-01_001/work /home/mcircuns/CODE/TF_MISFIT_GOF_JULIA/runs/2026-04-01_001/figures false"
+	User time (seconds): 73.16
+	System time (seconds): 26.34
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:38.55
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 6653868
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 359
+	Minor (reclaiming a frame) page faults: 6814657
+	Voluntary context switches: 1909
+	Involuntary context switches: 1040
+	Swaps: 0
+	File system inputs: 3326672
+	File system outputs: 1320
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
