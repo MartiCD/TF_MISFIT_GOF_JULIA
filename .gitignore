@@ -40,6 +40,7 @@ env/
 # =========================
 # Outputs generats (NO versionar)
 # =========================
+input_data_example/
 output_data/
 runs/
 ricker_wavelet_example/
