@@ -1,8 +1,9 @@
-import sys 
+import sys
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import SymLogNorm
+import h5py
 
 params = {
     "text.usetex": True,
@@ -46,6 +47,7 @@ print("Starting Plot.py", flush=True)
 print("---------------------------------------------------")
 print("       Python script for plotting TFPM misfits      ")
 
+
 def parse_bool(value: str) -> bool:
     value = value.strip().lower()
     if value in {"true", "1", "yes", "y"}:
@@ -71,60 +73,122 @@ def get_args():
 
     return input_dir, fig_dir, local_norm
 
-def read_misfit_file(filename="MISFIT-GOF.DAT"):
+
+def extract_tf_component(arr: np.ndarray, mt_expected: int) -> np.ndarray:
     """
-    Read MISFIT-GOF.DAT written by the Fortran/Julia code.
+    Returns a 2D array with shape (nf, mt) for component 0.
 
-    Structure:
-        line 1: FMIN FMAX
-        line 2: NF_TF MT
-        line 3: DT NC
-        line 4: max(abs(signal))
-        next NC lines: EM PM
-        next NC lines: EG PG
-        next 4 lines:
-            TFEMmax TFPMmax
-            FEMmax  FPMmax
-            TEMmax  TPMmax
-            CWT1max CWT2max
+    Handles typical layouts seen when Julia writes HDF5 and Python reads it:
+      - (nc, mt, nf)  -> take [0, :, :].T
+      - (nf, mt, nc)  -> take [:, :, 0]
+      - (mt, nf, nc)  -> take[:, :, 0].T
+      - (nf, mt)      -> already OK
+      - (mt, nf)      -> transpose
     """
-    with open(filename, "r") as f:
-        lines = [line.strip() for line in f if line.strip()]
+    arr = np.asarray(arr)
 
-    fmin_val, fmax_val = map(float, lines[0].split())
-    nfreq, n = map(int, lines[1].split())
-    dt, nc = lines[2].split()
-    dt = float(dt)
-    nc = int(float(nc))
+    if arr.ndim == 3:
+        # Case A: (nc, mt, nf)
+        if arr.shape[1] == mt_expected:
+            if arr.shape[0] == 1 or arr.shape[0] < arr.shape[2]:
+                return arr[0, :, :].T
+            else:
+                # likely (nf, mt, nc)
+                return arr[:, :, 0]
 
-    tf_line_index = 4 + 2 * nc
-    tfem_max, tfpm_max = map(float, lines[tf_line_index].split())
+        # Case B: (mt, nf, nc)
+        if arr.shape[0] == mt_expected:
+            return arr[:, :, 0].T
 
-    return {
-        "fmin_log": np.log10(fmin_val),
-        "fmax_log": np.log10(fmax_val),
-        "nfreq": nfreq,
-        "n": n,
-        "dt": dt,
-        "nc": nc,
-        "tfem_max": tfem_max,
-        "tfpm_max": tfpm_max,
-    }
+        # Fallback: try component-last
+        if arr.shape[2] == 1:
+            return arr[:, :, 0]
+
+        raise ValueError(f"Unexpected 3D TF array shape: {arr.shape}")
+
+    if arr.ndim == 2:
+        # (nf, mt)
+        if arr.shape[1] == mt_expected:
+            return arr
+        # (mt, nf)
+        if arr.shape[0] == mt_expected:
+            return arr.T
+
+        raise ValueError(f"Unexpected 2D TF array shape: {arr.shape}")
+
+    raise ValueError(f"Unexpected TF array rank: {arr.ndim}")
 
 
-def read_fortran_matrix(filename, nrows, ncols, dtype=np.float32):
+def extract_time_marginal(arr: np.ndarray, mt_expected: int) -> np.ndarray:
     """
-    Read a Fortran-written matrix from ASCII, ignoring line wrapping.
+    Returns a 1D array with shape (mt,) for component 0.
+    Handles:
+      - (nc, mt) -> arr[0, :]
+      - (mt, nc) -> arr[:, 0]
+      - (mt,)    -> arr
     """
-    data = np.fromfile(filename, sep=" ")
-    expected_size = nrows * ncols
+    arr = np.asarray(arr)
 
-    if data.size != expected_size:
-        raise ValueError(
-            f"{filename}: found {data.size} values, expected {expected_size}"
-        )
+    if arr.ndim == 1:
+        if arr.shape[0] != mt_expected:
+            raise ValueError(f"Unexpected time marginal shape: {arr.shape}")
+        return arr
 
-    return data.reshape((nrows, ncols))
+    if arr.ndim == 2:
+        if arr.shape[1] == mt_expected:
+            return arr[0, :]
+        if arr.shape[0] == mt_expected:
+            return arr[:, 0]
+
+    raise ValueError(f"Unexpected time marginal shape: {arr.shape}")
+
+
+def extract_freq_marginal(arr: np.ndarray, nf_expected: int) -> np.ndarray:
+    """
+    Returns a 1D array with shape (nf,) for component 0.
+    Handles:
+      - (nc, nf) -> arr[0, :]
+      - (nf, nc) -> arr[:, 0]
+      - (nf,)    -> arr
+    """
+    arr = np.asarray(arr)
+
+    if arr.ndim == 1:
+        if arr.shape[0] != nf_expected:
+            raise ValueError(f"Unexpected frequency marginal shape: {arr.shape}")
+        return arr
+
+    if arr.ndim == 2:
+        if arr.shape[1] == nf_expected:
+            return arr[0, :]
+        if arr.shape[0] == nf_expected:
+            return arr[:, 0]
+
+    raise ValueError(f"Unexpected frequency marginal shape: {arr.shape}")
+
+
+def extract_signal_component(arr: np.ndarray) -> np.ndarray:
+    """
+    Returns a 1D signal for component 0.
+
+    Handles:
+      - (nc, mt) -> arr[0, :]
+      - (mt, nc) -> arr[:, 0]
+      - (mt,)    -> arr
+    """
+    arr = np.asarray(arr)
+
+    if arr.ndim == 1:
+        return arr
+
+    if arr.ndim == 2:
+        # (nc, mt)
+        if arr.shape[0] <= arr.shape[1]:
+            return arr[0, :]
+        # (mt, nc)
+        return arr[:, 0]
+
+    raise ValueError(f"Unexpected signal shape: {arr.shape}")
 
 
 # ------------------------------------------------------------
@@ -132,47 +196,60 @@ def read_fortran_matrix(filename, nrows, ncols, dtype=np.float32):
 # ------------------------------------------------------------
 input_dir, fig_dir, local_norm = get_args()
 
-misfit_file = input_dir / "MISFIT-GOF.DAT"
-misfit = read_misfit_file(misfit_file)
+h5file = input_dir / "results.h5"
+if not h5file.exists():
+    raise FileNotFoundError(f"HDF5 file not found: {h5file}")
 
-fmin = misfit["fmin_log"]
-fmax = misfit["fmax_log"]
-nfreq = misfit["nfreq"]
-n = misfit["n"]
-dt = misfit["dt"]
-nc = misfit["nc"]
-tfpm_max = misfit["tfpm_max"]
+print("Reading HDF5...", flush=True)
 
-print(nfreq, n, dt, nc)
+with h5py.File(h5file, "r") as f:
+    signal1_raw = f["S1"][:]
+    signal2_raw = f["S2"][:]
 
-# Same style as TFEM script, but using TFPM max
-col_max = (np.floor(tfpm_max * 100.0) + 1.0) / 100.0
-col_max_tic = (np.floor(tfpm_max * 10.0) - 1.0) / 10.0
+    tfem_raw = f["TFEM"][:]
+    tfpm_raw = f["TFPM"][:]
+    tem_raw = f["TEM"][:]
+    tpm_raw = f["TPM"][:]
+    fem_raw = f["FEM"][:]
+    fpm_raw = f["FPM"][:]
 
-# If you want to force the colorbar to ±120%, uncomment:
-# col_max = 1.2
-# col_max_tic = 1.2
+    dt = float(f["dt"][()])
+    fmin = float(f["fmin"][()])
+    fmax = float(f["fmax"][()])
 
-df = (fmax - fmin) / (nfreq - 1)
+s1 = extract_signal_component(signal1_raw)
+s2 = extract_signal_component(signal2_raw)
 
-print("Reading TFEM...", flush=True)
-tfem = read_fortran_matrix(input_dir / "TFEM1.DAT", nfreq, n, dtype=np.float32)
-print("Reading TFPM...", flush=True)
-tfpm = read_fortran_matrix(input_dir / "TFPM1.DAT", nfreq, n, dtype=np.float32)
-print("Reading FEM...", flush=True)
-fem = np.loadtxt(input_dir / "FEM1.DAT", dtype=np.float32)
-print("Reading FPM...", flush=True)
-fpm = np.loadtxt(input_dir / "FPM1.DAT", dtype=np.float32)
-print("Reading TEM...", flush=True)
-tem = np.loadtxt(input_dir / "TEM1.DAT", dtype=np.float32)
-print("Reading TPM...", flush=True)
-tpm = np.loadtxt(input_dir / "TPM1.DAT", dtype=np.float32)
-print("Reading SINGNAL1...", flush=True)
-signal1 = np.loadtxt(input_dir / "S1.DAT", dtype=np.float32)
-print("Reading SINGNAL2...", flush=True)
-signal2 = np.loadtxt(input_dir / "S2.DAT", dtype=np.float32)
+n = s1.shape[0]
 
+tfem = extract_tf_component(tfem_raw, n)
+tfpm = extract_tf_component(tfpm_raw, n)
 
+nfreq, n_from_tf = tfem.shape
+if n_from_tf != n:
+    raise ValueError(
+        f"Inconsistent time dimension: TF data has mt={n_from_tf}, "
+        f"but signal data has n={n}"
+    )
+
+tem = extract_time_marginal(tem_raw, n)
+tpm = extract_time_marginal(tpm_raw, n)
+fem = extract_freq_marginal(fem_raw, nfreq)
+fpm = extract_freq_marginal(fpm_raw, nfreq)
+
+if tfem_raw.ndim == 3:
+    if tfem_raw.shape[1] == n:
+        nc = tfem_raw.shape[0] if tfem_raw.shape[0] <= tfem_raw.shape[2] else tfem_raw.shape[2]
+    elif tfem_raw.shape[0] == n:
+        nc = tfem_raw.shape[2]
+    else:
+        nc = 1
+else:
+    nc = 1
+
+print(f"Loaded HDF5: raw TFEM shape={tfem_raw.shape}")
+print(f"Loaded HDF5: raw S1 shape={signal1_raw.shape}")
+print(f"Using component 1 -> TF shape = {tfem.shape}, nc = {nc}, n = {n}, nf = {nfreq}")
 print("Data read successfully. Ready to plot.")
 print("---------------------------------------------------")
 
@@ -180,20 +257,9 @@ print("---------------------------------------------------")
 # Build axes coordinates
 # ------------------------------------------------------------
 time = np.arange(n) * dt
-freq_log = np.linspace(fmin, fmax, nfreq)
-freq = 10.0 ** freq_log
+freq = np.logspace(np.log10(fmin), np.log10(fmax), nfreq)
 
-if signal1.ndim == 2 and signal1.shape[1] >= 2:
-    t_sig = signal1[:, 0]
-    s1 = signal1[:, 1]
-else:
-    t_sig = time
-    s1 = signal1
-
-if signal2.ndim == 2 and signal2.shape[1] >= 2:
-    s2 = signal2[:, 1]
-else:
-    s2 = signal2
+t_sig = time
 
 # ------------------------------------------------------------
 # Convert to percent
@@ -219,8 +285,13 @@ if not np.isfinite(tfem_vlim) or tfem_vlim == 0:
 if not np.isfinite(tfpm_vlim) or tfpm_vlim == 0:
     tfpm_vlim = 1.0
 
-print(f"TFEM color limit = ±{tfem_vlim:.3g} %")
-print(f"TFPM color limit = ±{tfpm_vlim:.3g} %")
+if not local_norm:
+    print(f"TFEM color limit = ±{tfem_vlim:.3g} %")
+    print(f"TFPM color limit = ±{tfpm_vlim:.3g} %")
+else:
+    print(f"TFEM color limit = ±{tfem_vlim:.3g}")
+    print(f"TFPM color limit = ±{tfpm_vlim:.3g}")
+
 print(f"LOCAL_NORM       = {local_norm}")
 
 if not local_norm:
@@ -294,6 +365,9 @@ ax_tpm  = fig.add_subplot(gs_bot[1, 1], sharex=ax_tfem)
 # ------------------------------------------------------------
 # TF panels
 # ------------------------------------------------------------
+# Avoid Matplotlib warning with pcolormesh + grid
+ax_tfem.grid(False)
+ax_tfpm.grid(False)
 
 if not local_norm:
     im1 = ax_tfem.pcolormesh(
@@ -323,7 +397,6 @@ else:
         cmap="bwr",
         norm=tfpm_norm
     )
-
 
 # ------------------------------------------------------------
 # Left marginal frequency plots
@@ -438,6 +511,6 @@ else:
 fig.subplots_adjust(bottom=0.08)
 
 output_path = fig_dir / f"tf_misfit_{input_dir.name}.png"
-fig.savefig(output_path,  bbox_inches="tight", pad_inches=0.08, dpi=300)
+fig.savefig(output_path, bbox_inches="tight", pad_inches=0.08, dpi=300)
 plt.close(fig)
 print(f"Figure saved to: {output_path}")
