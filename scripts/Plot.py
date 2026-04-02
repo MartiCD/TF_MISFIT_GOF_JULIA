@@ -198,12 +198,13 @@ else:
 # ------------------------------------------------------------
 # Convert to percent
 # ------------------------------------------------------------
-tfem *= 100.0
-tfpm *= 100.0
-fem *= 100.0
-fpm *= 100.0
-tem *= 100.0
-tpm *= 100.0
+if not local_norm:
+    tfem *= 100.0
+    tfpm *= 100.0
+    fem *= 100.0
+    fpm *= 100.0
+    tem *= 100.0
+    tpm *= 100.0
 
 # ------------------------------------------------------------
 # Color normalization
@@ -424,13 +425,13 @@ else:
     cax1 = fig.add_axes([0.93, 0.56, 0.03, 0.26])
     cb1 = fig.colorbar(im1, cax=cax1)
     cb1.ax.set_title(r"$TFEM$", fontsize=14, pad=6)
-    cb1.ax.text(0.0, -0.075, r"[\%]", transform=cb1.ax.transAxes,
+    cb1.ax.text(0.0, -0.075, r"[-]", transform=cb1.ax.transAxes,
                 ha="left", va="top", fontsize=16)
 
     cax2 = fig.add_axes([0.93, 0.18, 0.03, 0.26])
     cb2 = fig.colorbar(im2, cax=cax2)
     cb2.ax.set_title(r"$TFPM$", fontsize=14, pad=6)
-    cb2.ax.text(0.0, -0.075, r"[\%]", transform=cb2.ax.transAxes,
+    cb2.ax.text(0.0, -0.075, r"[-]", transform=cb2.ax.transAxes,
                 ha="left", va="top", fontsize=16)
 
 # Give a bit more room at the bottom so TPM labels are not clipped
