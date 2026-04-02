@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INPUT_CSV="probe_signal_10f0_up_P4_Q5_CFL1.0.csv"
+INPUT_CSV="probe_ricker_wavelet.csv"
 LOCAL_NORM="${1:-false}"
 
 case "${LOCAL_NORM,,}" in

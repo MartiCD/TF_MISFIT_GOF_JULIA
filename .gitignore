@@ -62,6 +62,8 @@ examples/*
 !examples/**/MISFIT-GOF.DAT
 !examples/**/*.log
 
+data/*
+!data/probe_ricker_wavelet.csv
+
 runs/
 ricker_wavelet_example/
-data/probe_signal_*.csv
