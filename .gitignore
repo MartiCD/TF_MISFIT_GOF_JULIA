@@ -67,3 +67,7 @@ data/*
 
 runs/
 ricker_wavelet_example/
+
+run_diagnostics_pipeline.sh
+!scripts/build_tf_misfit_signals.py
+!scripts/Plot.py
