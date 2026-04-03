@@ -845,26 +845,19 @@ function main(input_file::String="HF_TF-MISFIT_GOF")
 
     open(s1_name, "r") do f1
         open(s2_name, "r") do f2
-            open("S1.DAT", "w") do out1
-                open("S2.DAT", "w") do out2
-                    for i in 1:mt
-                        row1 = parse.(Float64, split(readline(f1)))
-                        row2 = parse.(Float64, split(readline(f2)))
+            for i in 1:mt
+                row1 = parse.(Float64, split(readline(f1)))
+                row2 = parse.(Float64, split(readline(f2)))
 
-                        vals1 = row1[2:min(1 + nc, end)]
-                        vals2 = row2[2:min(1 + nc, end)]
-                        if length(vals1) != nc || length(vals2) != nc
-                            error("Row $i in input files does not contain NC=$nc values.")
-                        end
+                vals1 = row1[2:min(1 + nc, end)]
+                vals2 = row2[2:min(1 + nc, end)]
+                if length(vals1) != nc || length(vals2) != nc
+                    error("Row $i in input files does not contain NC=$nc values.")
+                end
 
-                        for j in 1:nc
-                            s1[j, i] = vals1[j]
-                            s2[j, i] = vals2[j]
-                        end
-
-                        println(out1, string(dt * (i - 1), " ", join((string(s1[j, i]) for j in 1:nc), " ")))
-                        println(out2, string(dt * (i - 1), " ", join((string(s2[j, i]) for j in 1:nc), " ")))
-                    end
+                for j in 1:nc
+                    s1[j, i] = vals1[j]
+                    s2[j, i] = vals2[j]
                 end
             end
         end
@@ -893,49 +886,9 @@ function main(input_file::String="HF_TF-MISFIT_GOF")
         dt, fmin, fmax
     )
 
-    # open("MISFIT-GOF.DAT", "w") do io
-    #     println(io, "$fmin $fmax")
-    #     println(io, "$nf_tf $mt")
-    #     println(io, "$dt $nc")
-    #     println(io, max(maximum(abs.(s1)), maximum(abs.(s2))))
-    #     for j in 1:nc
-    #         println(io, "$(em[j]) $(pm[j])")
-    #     end
-    #     for j in 1:nc
-    #         println(io, "$(A * exp(-abs(em[j])^K)) $(A * (1.0 - abs(pm[j])^K))")
-    #     end
-    #     println(io, "$(maximum(abs.(tfem))) $(maximum(abs.(tfpm)))")
-    #     println(io, "$(maximum(abs.(fem))) $(maximum(abs.(fpm)))")
-    #     println(io, "$(maximum(abs.(tem))) $(maximum(abs.(tpm)))")
-    #     println(io, "$(maximum(abs.(cwt1))) $(maximum(abs.(cwt2)))")
-    # end
-
-    # for j in 1:nc
-    #     char = string(j)
-    #     write_2d_slices("TFEM" * char * ".DAT", tfem[j, :, :], mt, nf_tf)
-    #     write_2d_slices("TFPM" * char * ".DAT", tfpm[j, :, :], mt, nf_tf)
-    #     write_1d("TEM" * char * ".DAT", tem[j, :])
-    #     write_1d("TPM" * char * ".DAT", tpm[j, :])
-    #     write_1d("FEM" * char * ".DAT", fem[j, :])
-    #     write_1d("FPM" * char * ".DAT", fpm[j, :])
-    #     write_2d_slices("TFRS1_" * char * ".DAT", cwt1[j, :, :], mt, nf_tf)
-    #     write_2d_slices("TFRS2_" * char * ".DAT", cwt2[j, :, :], mt, nf_tf)
-    # end
-
-    # for j in 1:nc
-    #     char = string(j)
-    #     write_2d_slices("TFEG" * char * ".DAT", A .* exp.(-abs.(tfem[j, :, :]).^K), mt, nf_tf)
-    #     write_2d_slices("TFPG" * char * ".DAT", A .* (1.0 .- abs.(tfpm[j, :, :]).^K), mt, nf_tf)
-    #     write_1d("TEG" * char * ".DAT", A .* exp.(-abs.(tem[j, :]).^K))
-    #     write_1d("TPG" * char * ".DAT", A .* (1.0 .- abs.(tpm[j, :]).^K))
-    #     write_1d("FEG" * char * ".DAT", A .* exp.(-abs.(fem[j, :]).^K))
-    #     write_1d("FPG" * char * ".DAT", A .* (1.0 .- abs.(fpm[j, :]).^K))
-    # end
     
     println("Wrote compact outputs:")
     println("  - results.h5")
-    println("  - S1.DAT")
-    println("  - S2.DAT")
     flush(stdout)
 end
 
