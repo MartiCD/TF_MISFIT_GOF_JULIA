@@ -1,5 +1,16 @@
 using Dates
 
+"""
+    main_legacy(input_file::AbstractString="HF_TF-MISFIT_GOF")
+
+Programmatic legacy entrypoint used by the compatibility shim and internal API.
+This should run the numerical engine directly from an input namelist file and
+return the main summary output path.
+"""
+function main_legacy(input_file::AbstractString="HF_TF-MISFIT_GOF")
+    return run_from_inputfile(input_file)
+end
+
 function run_prepare(input_path::AbstractString, input_csv_path::AbstractString;
                      local_norm::Bool=false,
                      base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")))
@@ -96,11 +107,14 @@ function run_pipeline(; input_csv::AbstractString=joinpath("data", "probe_ricker
 end
 
 function compute_from_inputfile(input_file::AbstractString; workdir::AbstractString=pwd())
-    run_legacy_script(input_file; workdir=workdir)
+    abs_workdir = abspath(workdir)
 
-    summary_file = joinpath(workdir, "MISFIT-GOF.DAT")
-    isfile(summary_file) || error("Expected output not found: $summary_file")
-    return summary_file
+    return cd(abs_workdir) do
+        main_legacy(input_file)
+        summary_file = joinpath(abs_workdir, "MISFIT-GOF.DAT")
+        isfile(summary_file) || error("Expected output not found: $summary_file")
+        summary_file
+    end
 end
 
 function validate_example_run(example_dir::AbstractString)

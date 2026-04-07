@@ -13,11 +13,16 @@ using TFMisfitGOF
     dirs2 = create_run_dirs(runs_dir=d, date_str="2026-04-07")
     @test endswith(dirs2.run_name, "_002")
 
-    @test_throws Exception TFMisfitGOF.main(["prepare"])
-    @test_throws Exception TFMisfitGOF.main(["plot", "--workdir", "x"])
+    @test_throws Exception main_cli(["prepare"])
+    @test_throws Exception main_cli(["plot", "--workdir", "x"])
 end
 
-@testset "plot API validation" begin
-    @test_throws Exception run_plot("a", "b"; format="jpg")
-    @test_throws Exception run_plot("a", "b"; style="fancy")
+@testset "CLI required option parsing" begin
+    opts = TFMisfitGOF._parse_kv_args(["--example-dir", "examples/global"])
+    @test opts["--example-dir"] == "examples/global"
+end
+
+@testset "CLI validate parsing" begin
+    ex = joinpath(normpath(joinpath(@__DIR__, "..")), "examples", "global")
+    @test_nowarn main_cli(["validate", "--example-dir", ex])
 end

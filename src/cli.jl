@@ -29,15 +29,20 @@ Usage:
 """)
 end
 
-function main(args=ARGS)
+function _required_opt(opts::Dict{String,String}, key::String)
+    haskey(opts, key) || error("Missing $key")
+    return opts[key]
+end
+
+function main_cli(args=ARGS)
     isempty(args) && return print_usage()
 
     cmd = args[1]
     opts = _parse_kv_args(args[2:end])
 
     if cmd == "prepare"
-        input_csv = get(opts, "--input-csv", error("Missing --input-csv"))
-        workdir = get(opts, "--workdir", error("Missing --workdir"))
+        input_csv = _required_opt(opts, "--input-csv")
+        workdir = _required_opt(opts, "--workdir")
         local_norm = _parse_bool(get(opts, "--local-norm", "false"))
 
         input_path = joinpath(workdir, "HF_TF-MISFIT_GOF")
@@ -47,7 +52,7 @@ function main(args=ARGS)
         return
 
     elseif cmd == "run"
-        workdir = get(opts, "--workdir", error("Missing --workdir"))
+        workdir = _required_opt(opts, "--workdir")
         input_file = get(opts, "--input-file", "HF_TF-MISFIT_GOF")
 
         summary = run_compute(workdir=workdir, input_file=input_file)
@@ -55,8 +60,8 @@ function main(args=ARGS)
         return
 
     elseif cmd == "plot"
-        workdir = get(opts, "--workdir", error("Missing --workdir"))
-        figdir = get(opts, "--figdir", error("Missing --figdir"))
+        workdir = _required_opt(opts, "--workdir")
+        figdir = _required_opt(opts, "--figdir")
         local_norm = _parse_bool(get(opts, "--local-norm", "false"))
         usetex = _parse_bool(get(opts, "--usetex", "false"))
         style = get(opts, "--style", "portable")
@@ -95,7 +100,7 @@ function main(args=ARGS)
         return
 
     elseif cmd == "validate"
-        example_dir = get(opts, "--example-dir", error("Missing --example-dir"))
+        example_dir = _required_opt(opts, "--example-dir")
         summary = validate_example_run(example_dir)
         println("Validation passed for: ", abspath(example_dir))
         println("Summary file: ", abspath(summary))

@@ -21,7 +21,6 @@ end
 @testset "example runs" begin
     repo_root = normpath(joinpath(@__DIR__, ".."))
 
-    # Adjust these if the example subdirectories evolve.
     candidate_examples = [
         joinpath(repo_root, "examples", "global"),
         joinpath(repo_root, "examples", "local"),
@@ -32,7 +31,9 @@ end
     for ex in candidate_examples
         if isdir(ex)
             found_any = true
-            @testset basename(ex) begin
+            name = basename(ex)
+
+            @testset "$name" begin
                 summary = validate_example_run(ex)
                 @test isfile(summary)
                 @test filesize(summary) > 0
