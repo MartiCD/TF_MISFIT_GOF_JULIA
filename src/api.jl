@@ -1,5 +1,8 @@
+using Dates
+
 function run_prepare(input_path::AbstractString, input_csv_path::AbstractString;
-                     local_norm::Bool=false, base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")))
+                     local_norm::Bool=false,
+                     base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")))
     script = joinpath(base_dir, "scripts", "build_tf_misfit_signals.py")
     isfile(script) || error("Preprocess script not found: $script")
     isfile(input_csv_path) || error("Input CSV not found: $input_csv_path")
@@ -14,20 +17,27 @@ function run_prepare(input_path::AbstractString, input_csv_path::AbstractString;
 end
 
 function run_compute(; workdir::AbstractString,
-                      input_file::AbstractString="HF_TF-MISFIT_GOF")
+                     input_file::AbstractString="HF_TF-MISFIT_GOF")
     summary_file = compute_from_inputfile(input_file; workdir=workdir)
     return summary_file
 end
 
 function run_plot(workdir::AbstractString, figdir::AbstractString;
                   local_norm::Bool=false,
+                  usetex::Bool=false,
+                  format::AbstractString="png",
+                  dpi::Int=300,
+                  style::AbstractString="portable",
                   base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")))
     script = joinpath(base_dir, "scripts", "Plot.py")
     isfile(script) || error("Plot script not found: $script")
 
+    format in ("png", "pdf", "both") || error("Invalid format: $format")
+    style in ("portable", "publication") || error("Invalid style: $style")
+
     mkpath(figdir)
 
-    cmd = `python3 $script $workdir $figdir $(lowercase(string(local_norm)))`
+    cmd = `python3 $script $workdir $figdir $(lowercase(string(local_norm))) --usetex $(lowercase(string(usetex))) --style $style --dpi $dpi --format $format`
     run(cmd)
 
     return figdir
@@ -60,9 +70,13 @@ function create_run_dirs(; runs_dir::AbstractString,
 end
 
 function run_pipeline(; input_csv::AbstractString=joinpath("data", "probe_ricker_wavelet.csv"),
-                        local_norm::Bool=false,
-                        base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")),
-                        runs_dir::AbstractString=joinpath(base_dir, "runs"))
+                      local_norm::Bool=false,
+                      usetex::Bool=false,
+                      format::AbstractString="png",
+                      dpi::Int=300,
+                      style::AbstractString="portable",
+                      base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")),
+                      runs_dir::AbstractString=joinpath(base_dir, "runs"))
     dirs = create_run_dirs(runs_dir=runs_dir)
 
     input_csv_path = isabspath(input_csv) ? input_csv : joinpath(base_dir, input_csv)
@@ -70,7 +84,27 @@ function run_pipeline(; input_csv::AbstractString=joinpath("data", "probe_ricker
 
     run_prepare(input_path, input_csv_path; local_norm=local_norm, base_dir=base_dir)
     summary = run_compute(workdir=dirs.work_dir, input_file="HF_TF-MISFIT_GOF")
-    run_plot(dirs.work_dir, dirs.fig_dir; local_norm=local_norm, base_dir=base_dir)
+    run_plot(dirs.work_dir, dirs.fig_dir;
+             local_norm=local_norm,
+             usetex=usetex,
+             format=format,
+             dpi=dpi,
+             style=style,
+             base_dir=base_dir)
 
     return (; dirs..., summary_file=summary)
+end
+
+function compute_from_inputfile(input_file::AbstractString; workdir::AbstractString=pwd())
+    run_legacy_script(input_file; workdir=workdir)
+
+    summary_file = joinpath(workdir, "MISFIT-GOF.DAT")
+    isfile(summary_file) || error("Expected output not found: $summary_file")
+    return summary_file
+end
+
+function validate_example_run(example_dir::AbstractString)
+    input_file = "HF_TF-MISFIT_GOF"
+    summary_file = compute_from_inputfile(input_file; workdir=example_dir)
+    return summary_file
 end

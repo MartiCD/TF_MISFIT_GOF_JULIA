@@ -168,13 +168,28 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' run \
 
 ### `plot`
 
-Generate figures from an existing run:
+Portable default:
 
 ```bash
 julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' plot \
   --workdir runs/dev/work \
   --figdir runs/dev/figures \
-  --local-norm false
+  --local-norm false \
+  --usetex false \
+  --style portable \
+  --format png
+```
+
+Publication-style figures:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' plot \
+  --workdir runs/dev/work \
+  --figdir runs/dev/figures \
+  --local-norm false \
+  --usetex true \
+  --style publication \
+  --format both
 ```
 
 ### `validate`

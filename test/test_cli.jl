@@ -16,3 +16,8 @@ using TFMisfitGOF
     @test_throws Exception TFMisfitGOF.main(["prepare"])
     @test_throws Exception TFMisfitGOF.main(["plot", "--workdir", "x"])
 end
+
+@testset "plot API validation" begin
+    @test_throws Exception run_plot("a", "b"; format="jpg")
+    @test_throws Exception run_plot("a", "b"; style="fancy")
+end

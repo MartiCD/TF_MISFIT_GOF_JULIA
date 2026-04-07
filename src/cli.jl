@@ -1,5 +1,3 @@
-using Dates
-
 function _parse_bool(x::AbstractString)
     y = lowercase(strip(x))
     y in ("true", "t", "1", "yes") && return true
@@ -25,13 +23,9 @@ function print_usage()
 Usage:
   tfmisfit prepare  --input-csv <csv> --workdir <dir> [--local-norm <true|false>]
   tfmisfit run      --workdir <dir> [--input-file <name>]
-  tfmisfit plot     --workdir <dir> --figdir <dir> [--local-norm <true|false>]
-  tfmisfit pipeline [--input-csv <csv>] [--local-norm <true|false>] [--runs-dir <dir>]
+  tfmisfit plot     --workdir <dir> --figdir <dir> [--local-norm <true|false>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>]
+  tfmisfit pipeline [--input-csv <csv>] [--local-norm <true|false>] [--runs-dir <dir>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>]
   tfmisfit validate --example-dir <dir>
-
-Examples:
-  julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' pipeline --local-norm false
-  julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' run --workdir examples/global
 """)
 end
 
@@ -45,14 +39,17 @@ function main(args=ARGS)
         input_csv = get(opts, "--input-csv", error("Missing --input-csv"))
         workdir = get(opts, "--workdir", error("Missing --workdir"))
         local_norm = _parse_bool(get(opts, "--local-norm", "false"))
+
         input_path = joinpath(workdir, "HF_TF-MISFIT_GOF")
         run_prepare(input_path, input_csv; local_norm=local_norm)
+
         println("Prepared input: ", abspath(input_path))
         return
 
     elseif cmd == "run"
         workdir = get(opts, "--workdir", error("Missing --workdir"))
         input_file = get(opts, "--input-file", "HF_TF-MISFIT_GOF")
+
         summary = run_compute(workdir=workdir, input_file=input_file)
         println("Finished. Summary: ", abspath(summary))
         return
@@ -61,7 +58,18 @@ function main(args=ARGS)
         workdir = get(opts, "--workdir", error("Missing --workdir"))
         figdir = get(opts, "--figdir", error("Missing --figdir"))
         local_norm = _parse_bool(get(opts, "--local-norm", "false"))
-        run_plot(workdir, figdir; local_norm=local_norm)
+        usetex = _parse_bool(get(opts, "--usetex", "false"))
+        style = get(opts, "--style", "portable")
+        dpi = parse(Int, get(opts, "--dpi", "300"))
+        format = get(opts, "--format", "png")
+
+        run_plot(workdir, figdir;
+                 local_norm=local_norm,
+                 usetex=usetex,
+                 style=style,
+                 dpi=dpi,
+                 format=format)
+
         println("Plots written to: ", abspath(figdir))
         return
 
@@ -69,16 +77,30 @@ function main(args=ARGS)
         input_csv = get(opts, "--input-csv", joinpath("data", "probe_ricker_wavelet.csv"))
         local_norm = _parse_bool(get(opts, "--local-norm", "false"))
         runs_dir = get(opts, "--runs-dir", joinpath(normpath(joinpath(@__DIR__, "..")), "runs"))
-        result = run_pipeline(input_csv=input_csv, local_norm=local_norm, runs_dir=runs_dir)
+        usetex = _parse_bool(get(opts, "--usetex", "false"))
+        style = get(opts, "--style", "portable")
+        dpi = parse(Int, get(opts, "--dpi", "300"))
+        format = get(opts, "--format", "png")
+
+        result = run_pipeline(input_csv=input_csv,
+                              local_norm=local_norm,
+                              runs_dir=runs_dir,
+                              usetex=usetex,
+                              style=style,
+                              dpi=dpi,
+                              format=format)
+
         println("Run folder: ", abspath(result.run_dir))
         println("Summary file: ", abspath(result.summary_file))
         return
 
     elseif cmd == "validate"
         example_dir = get(opts, "--example-dir", error("Missing --example-dir"))
-        validate_example_run(example_dir)
+        summary = validate_example_run(example_dir)
         println("Validation passed for: ", abspath(example_dir))
+        println("Summary file: ", abspath(summary))
         return
+
     else
         return print_usage()
     end
