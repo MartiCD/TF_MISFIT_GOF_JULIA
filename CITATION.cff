@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: TFMisfitGOF
+message: "If you use this software, please cite it using the metadata below."
+type: software
+authors:
+  - family-names: Circuns-Duxans
+    given-names: Martí
+repository-code: "https://github.com/MartiCD/TF_MISFIT_GOF_JULIA"
+license: GPL-3.0-or-later
+version: 0.1.0

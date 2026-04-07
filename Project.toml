@@ -1,0 +1,9 @@
+name = "TFMisfitGOF"
+uuid = "6c3d9a6f-4d34-4c97-8f74-57e0fd8bfa11"
+authors = ["Martí Circuns-Duxans"]
+version = "0.1.0"
+
+[deps]
+
+[compat]
+julia = "1.10"
