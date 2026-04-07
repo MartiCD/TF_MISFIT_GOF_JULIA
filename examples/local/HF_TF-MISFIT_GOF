@@ -1,0 +1,11 @@
+&INPUT
+  S1_NAME = 'signal1.dat',
+  S2_NAME = 'signal2.dat',
+  NC = 1,
+  MT = 16103,
+  DT = 6.2092801336000036e-04,
+  FMIN = 1.0001196343970684e-01,
+  FMAX = 8.0524632363479952e+02,
+  IS_S2_REFERENCE = .TRUE.,
+  LOCAL_NORM = .TRUE.
+/

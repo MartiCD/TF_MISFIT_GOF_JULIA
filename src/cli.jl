@@ -18,20 +18,20 @@ function _parse_kv_args(args)
     return opts
 end
 
+function _required_opt(opts::Dict{String,String}, key::String)
+    haskey(opts, key) || error("Missing $key")
+    return opts[key]
+end
+
 function print_usage()
     println("""
 Usage:
   tfmisfit prepare  --input-csv <csv> --workdir <dir> [--local-norm <true|false>]
-  tfmisfit run      --workdir <dir> [--input-file <name>]
+  tfmisfit run      --workdir <dir> [--input-file <name>] [--legacy-output <h5|summary|full>]
   tfmisfit plot     --workdir <dir> --figdir <dir> [--local-norm <true|false>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>]
-  tfmisfit pipeline [--input-csv <csv>] [--local-norm <true|false>] [--runs-dir <dir>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>]
-  tfmisfit validate --example-dir <dir>
+  tfmisfit pipeline [--input-csv <csv>] [--local-norm <true|false>] [--runs-dir <dir>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>] [--legacy-output <h5|summary|full>]
+  tfmisfit validate --example-dir <dir> [--legacy-output <h5|summary|full>]
 """)
-end
-
-function _required_opt(opts::Dict{String,String}, key::String)
-    haskey(opts, key) || error("Missing $key")
-    return opts[key]
 end
 
 function main_cli(args=ARGS)
@@ -54,9 +54,12 @@ function main_cli(args=ARGS)
     elseif cmd == "run"
         workdir = _required_opt(opts, "--workdir")
         input_file = get(opts, "--input-file", "HF_TF-MISFIT_GOF")
+        legacy_output = get(opts, "--legacy-output", "summary")
 
-        summary = run_compute(workdir=workdir, input_file=input_file)
-        println("Finished. Summary: ", abspath(summary))
+        output_file = run_compute(workdir=workdir,
+                                  input_file=input_file,
+                                  legacy_output=legacy_output)
+        println("Finished. Output: ", abspath(output_file))
         return
 
     elseif cmd == "plot"
@@ -86,6 +89,7 @@ function main_cli(args=ARGS)
         style = get(opts, "--style", "portable")
         dpi = parse(Int, get(opts, "--dpi", "300"))
         format = get(opts, "--format", "png")
+        legacy_output = get(opts, "--legacy-output", "summary")
 
         result = run_pipeline(input_csv=input_csv,
                               local_norm=local_norm,
@@ -93,17 +97,20 @@ function main_cli(args=ARGS)
                               usetex=usetex,
                               style=style,
                               dpi=dpi,
-                              format=format)
+                              format=format,
+                              legacy_output=legacy_output)
 
         println("Run folder: ", abspath(result.run_dir))
-        println("Summary file: ", abspath(result.summary_file))
+        println("Output file: ", abspath(result.output_file))
         return
 
     elseif cmd == "validate"
         example_dir = _required_opt(opts, "--example-dir")
-        summary = validate_example_run(example_dir)
+        legacy_output = get(opts, "--legacy-output", "summary")
+
+        output_file = validate_example_run(example_dir; legacy_output=legacy_output)
         println("Validation passed for: ", abspath(example_dir))
-        println("Summary file: ", abspath(summary))
+        println("Output file: ", abspath(output_file))
         return
 
     else

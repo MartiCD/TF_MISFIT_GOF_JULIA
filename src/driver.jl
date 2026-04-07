@@ -1,7 +1,13 @@
 using DelimitedFiles
 using HDF5
 
-function run_from_inputfile(input_file::AbstractString="HF_TF-MISFIT_GOF")
+function run_from_inputfile(input_file::AbstractString="HF_TF-MISFIT_GOF";
+                            legacy_output::AbstractString="summary")
+    legacy_output in ("h5", "summary", "full") || error("Invalid legacy_output: $legacy_output")
+
+    write_summary_dat = legacy_output in ("summary", "full")
+    write_full_dat = legacy_output == "full"
+
     params = read_fortran_namelist_input(input_file)
 
     s1_name = strip_quotes(params["S1_NAME"])
@@ -45,23 +51,7 @@ function run_from_inputfile(input_file::AbstractString="HF_TF-MISFIT_GOF")
 
     tfem, tfpm, tem, tpm, fem, fpm, em, pm, cwt1, cwt2 = results
 
-    open("MISFIT-GOF.DAT", "w") do io
-        for j in 1:nc
-            println(io, em[j], " ", pm[j])
-        end
-    end
-
-    for j in 1:nc
-        write_2d_slices("TFEM$(j).DAT", tfem[j, :, :], mt, nf_tf)
-        write_2d_slices("TFPM$(j).DAT", tfpm[j, :, :], mt, nf_tf)
-        write_1d("TEM$(j).DAT", tem[j, :])
-        write_1d("TPM$(j).DAT", tpm[j, :])
-        write_1d("FEM$(j).DAT", fem[j, :])
-        write_1d("FPM$(j).DAT", fpm[j, :])
-        write_2d_slices("CWT1$(j).DAT", cwt1[j, :, :], mt, nf_tf)
-        write_2d_slices("CWT2$(j).DAT", cwt2[j, :, :], mt, nf_tf)
-    end
-
+    # Canonical output: always write HDF5
     h5open("results.h5", "w") do h5
         h5["S1"] = s1
         h5["S2"] = s2
@@ -85,5 +75,32 @@ function run_from_inputfile(input_file::AbstractString="HF_TF-MISFIT_GOF")
         h5["s2_reference"] = Int(is_s2_reference)
     end
 
-    return joinpath(pwd(), "MISFIT-GOF.DAT")
+    # Compatibility summary output
+    if write_summary_dat
+        open("MISFIT-GOF.DAT", "w") do io
+            for j in 1:nc
+                println(io, em[j], " ", pm[j])
+            end
+        end
+    end
+
+    # Full legacy ASCII outputs
+    if write_full_dat
+        for j in 1:nc
+            write_2d_slices("TFEM$(j).DAT", tfem[j, :, :], mt, nf_tf)
+            write_2d_slices("TFPM$(j).DAT", tfpm[j, :, :], mt, nf_tf)
+            write_1d("TEM$(j).DAT", tem[j, :])
+            write_1d("TPM$(j).DAT", tpm[j, :])
+            write_1d("FEM$(j).DAT", fem[j, :])
+            write_1d("FPM$(j).DAT", fpm[j, :])
+            write_2d_slices("CWT1$(j).DAT", cwt1[j, :, :], mt, nf_tf)
+            write_2d_slices("CWT2$(j).DAT", cwt2[j, :, :], mt, nf_tf)
+        end
+    end
+
+    if legacy_output == "h5"
+        return joinpath(pwd(), "results.h5")
+    else
+        return joinpath(pwd(), "MISFIT-GOF.DAT")
+    end
 end

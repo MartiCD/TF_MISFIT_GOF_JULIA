@@ -1,14 +1,13 @@
 using Dates
 
 """
-    main_legacy(input_file::AbstractString="HF_TF-MISFIT_GOF")
+    main_legacy(input_file::AbstractString="HF_TF-MISFIT_GOF"; legacy_output::AbstractString="summary")
 
 Programmatic legacy entrypoint used by the compatibility shim and internal API.
-This should run the numerical engine directly from an input namelist file and
-return the main summary output path.
 """
-function main_legacy(input_file::AbstractString="HF_TF-MISFIT_GOF")
-    return run_from_inputfile(input_file)
+function main_legacy(input_file::AbstractString="HF_TF-MISFIT_GOF";
+                     legacy_output::AbstractString="summary")
+    return run_from_inputfile(input_file; legacy_output=legacy_output)
 end
 
 function run_prepare(input_path::AbstractString, input_csv_path::AbstractString;
@@ -28,9 +27,10 @@ function run_prepare(input_path::AbstractString, input_csv_path::AbstractString;
 end
 
 function run_compute(; workdir::AbstractString,
-                     input_file::AbstractString="HF_TF-MISFIT_GOF")
-    summary_file = compute_from_inputfile(input_file; workdir=workdir)
-    return summary_file
+                     input_file::AbstractString="HF_TF-MISFIT_GOF",
+                     legacy_output::AbstractString="summary")
+    output_file = compute_from_inputfile(input_file; workdir=workdir, legacy_output=legacy_output)
+    return output_file
 end
 
 function run_plot(workdir::AbstractString, figdir::AbstractString;
@@ -86,6 +86,7 @@ function run_pipeline(; input_csv::AbstractString=joinpath("data", "probe_ricker
                       format::AbstractString="png",
                       dpi::Int=300,
                       style::AbstractString="portable",
+                      legacy_output::AbstractString="summary",
                       base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")),
                       runs_dir::AbstractString=joinpath(base_dir, "runs"))
     dirs = create_run_dirs(runs_dir=runs_dir)
@@ -94,7 +95,10 @@ function run_pipeline(; input_csv::AbstractString=joinpath("data", "probe_ricker
     input_path = joinpath(dirs.work_dir, "HF_TF-MISFIT_GOF")
 
     run_prepare(input_path, input_csv_path; local_norm=local_norm, base_dir=base_dir)
-    summary = run_compute(workdir=dirs.work_dir, input_file="HF_TF-MISFIT_GOF")
+    output_file = run_compute(workdir=dirs.work_dir,
+                              input_file="HF_TF-MISFIT_GOF",
+                              legacy_output=legacy_output)
+
     run_plot(dirs.work_dir, dirs.fig_dir;
              local_norm=local_norm,
              usetex=usetex,
@@ -103,22 +107,28 @@ function run_pipeline(; input_csv::AbstractString=joinpath("data", "probe_ricker
              style=style,
              base_dir=base_dir)
 
-    return (; dirs..., summary_file=summary)
+    return (; dirs..., output_file=output_file)
 end
 
-function compute_from_inputfile(input_file::AbstractString; workdir::AbstractString=pwd())
+function compute_from_inputfile(input_file::AbstractString;
+                                workdir::AbstractString=pwd(),
+                                legacy_output::AbstractString="summary")
     abs_workdir = abspath(workdir)
 
     return cd(abs_workdir) do
-        main_legacy(input_file)
-        summary_file = joinpath(abs_workdir, "MISFIT-GOF.DAT")
-        isfile(summary_file) || error("Expected output not found: $summary_file")
-        summary_file
+        main_legacy(input_file; legacy_output=legacy_output)
+
+        expected_file = legacy_output == "h5" ? "results.h5" : "MISFIT-GOF.DAT"
+        isfile(expected_file) || error("Expected output not found: $(abspath(expected_file))")
+        abspath(expected_file)
     end
 end
 
-function validate_example_run(example_dir::AbstractString)
+function validate_example_run(example_dir::AbstractString;
+                              legacy_output::AbstractString="summary")
     input_file = "HF_TF-MISFIT_GOF"
-    summary_file = compute_from_inputfile(input_file; workdir=example_dir)
-    return summary_file
+    output_file = compute_from_inputfile(input_file;
+                                         workdir=example_dir,
+                                         legacy_output=legacy_output)
+    return output_file
 end

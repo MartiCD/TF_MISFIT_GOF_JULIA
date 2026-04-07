@@ -239,6 +239,40 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
 ])'
 ```
 
+Lean modern workflow:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "pipeline",
+  "--input-csv","data/probe_ricker_wavelet.csv",
+  "--local-norm","false",
+  "--legacy-output","h5"
+])'
+```
+
+Full legacy export
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "pipeline",
+  "--input-csv","data/probe_ricker_wavelet.csv",
+  "--local-norm","false",
+  "--legacy-output","full"
+])'
+```
+
+
+### Output policy
+
+`results.h5` is the canonical output format.
+
+Legacy ASCII `.DAT` files remain available for backward compatibility and can be controlled with:
+
+- `--legacy-output h5`      → write only `results.h5`
+- `--legacy-output summary` → write `results.h5` + `MISFIT-GOF.DAT`
+- `--legacy-output full`    → write `results.h5` + all legacy `.DAT`
+
+The default is `summary`.
+
 ---
 
 ## Example workflow
