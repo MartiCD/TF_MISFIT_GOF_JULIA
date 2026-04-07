@@ -58,12 +58,6 @@ echo "Running TF_MISFIT_GOF_JULIA..."
   julia "$BASE_DIR/src/tf_misfit_port.jl" "HF_TF-MISFIT_GOF"
 ) > "$LOG_DIR/julia.log" 2>&1
 
-# echo "Running post-process..."
-# (
-#   # cd "$WORK_DIR"
-#   python3 "$BASE_DIR/scripts/Plot.py" "$WORK_DIR" "$FIG_DIR" "$LOCAL_NORM"
-# ) > "$LOG_DIR/plot.log" 2>&1
-
 echo "Running post-process..."
 (
   /usr/bin/time -v python3 "$BASE_DIR/scripts/Plot.py" "$WORK_DIR" "$FIG_DIR" "$LOCAL_NORM"

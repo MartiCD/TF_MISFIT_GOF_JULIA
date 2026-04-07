@@ -33,18 +33,34 @@ It produces:
 
 ## 📂 Repository structure
 
-```
 .
-├── src/                     # Core Julia implementation
-├── scripts/                 # Execution / pipeline scripts
-├── examples                 # Examples datasets
-├── plotting_example/        # Visualization scripts (Python)
-├── output_data/             # Generated results (ignored by git)
-├── runs/                    # Batch runs (ignored by git)
-├── README.md
+├── data/                    # Input CSVs and working input data
+├── examples/                # Reproducible example runs
+├── scripts/                 # Python preprocessing / plotting helpers
+├── src/                     # Julia implementation
+├── test/                    # Julia regression tests
+├── python/                  # Python dependency specification
+├── .github/workflows/       # CI
+├── Project.toml
+└── README.md
+
+## Getting started
+
+### Julia
+
+```bash
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
----
+### Run an example
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' validate examples/global
+```
+
+### Python helpers
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' run examples/global HF_TF-MISFIT_GOF
+```
 
 ## 🚀 Getting started
 

@@ -1,59 +1,59 @@
-"""
-=====================================================================
-Time-Frequency Misfit Analysis (Julia port of Fortran code)
-=====================================================================
+# =====================================================================
+# Time-Frequency Misfit Analysis (Julia port of Fortran code)
+# =====================================================================
 
-This program computes time-frequency misfits between two signals using
-continuous wavelet transforms (CWT) based on the Morlet wavelet.
+# This program computes time-frequency misfits between two signals using
+# continuous wavelet transforms (CWT) based on the Morlet wavelet.
 
-Overview
---------
-Given two input signals S1 and S2 (possibly multi-component), the code:
+# Overview
+# --------
+# Given two input signals S1 and S2 (possibly multi-component), the code:
 
-1. Transforms each signal to the frequency domain using a custom FFT
-   (ported from the original Fortran routine FCOOLR).
+# 1. Transforms each signal to the frequency domain using a custom FFT
+#    (ported from the original Fortran routine FCOOLR).
 
-2. Computes their Continuous Wavelet Transform (CWT) using a
-   frequency-domain Morlet wavelet.
+# 2. Computes their Continuous Wavelet Transform (CWT) using a
+#    frequency-domain Morlet wavelet.
 
-3. Builds a time-frequency representation (TFR) of both signals.
+# 3. Builds a time-frequency representation (TFR) of both signals.
 
-4. Computes misfit measures between S1 and S2:
+# 4. Computes misfit measures between S1 and S2:
 
-   - TFEM: Time-Frequency Envelope Misfit
-   - TFPM: Time-Frequency Phase Misfit
-   - TEM / TPM: Time-dependent misfits (averaged over frequency)
-   - FEM / FPM: Frequency-dependent misfits (averaged over time)
-   - EM / PM: Global scalar misfits
+#    - TFEM: Time-Frequency Envelope Misfit
+#    - TFPM: Time-Frequency Phase Misfit
+#    - TEM / TPM: Time-dependent misfits (averaged over frequency)
+#    - FEM / FPM: Frequency-dependent misfits (averaged over time)
+#    - EM / PM: Global scalar misfits
 
-5. Optionally applies:
-   - Global normalization (tf_misfits_glob)
-   - Local normalization (tf_misfits_loc)
+# 5. Optionally applies:
+#    - Global normalization (tf_misfits_glob)
+#    - Local normalization (tf_misfits_loc)
 
-6. Outputs multiple diagnostic files containing:
-   - Time-frequency misfit maps
-   - Marginal misfits (time / frequency)
-   - Wavelet power spectra (|CWT|^2)
-   - Goodness-of-fit metrics
+# 6. Outputs multiple diagnostic files containing:
+#    - Time-frequency misfit maps
+#    - Marginal misfits (time / frequency)
+#    - Wavelet power spectra (|CWT|^2)
+#    - Goodness-of-fit metrics
 
 
-More info
----------
-For more details we encourage the user to read:
+# More info
+# ---------
+# For more details we encourage the user to read:
 
-1. Kristekova M., J. Kristek, P. Moczo, and S.M. Day, 2006.
-   Misfit criteria for quantitative comparison of seismograms.
-   Bull. Seism. Soc. Am. 96, 1836-1850,
-   doi: 10.1785/0120060012.
+# 1. Kristekova M., J. Kristek, P. Moczo, and S.M. Day, 2006.
+#    Misfit criteria for quantitative comparison of seismograms.
+#    Bull. Seism. Soc. Am. 96, 1836-1850,
+#    doi: 10.1785/0120060012.
 
-2. Kristekova M., Kristek J., Moczo P., 2009.
-   Time-frequency misfit and goodness-of-fit criteria
-   for quantitative comparison of time signals.
-   Geophys. J. Int. 178, 813-825,
-   doi: 10.1111/j.1365-246X.2009.04177.x.
+# 2. Kristekova M., Kristek J., Moczo P., 2009.
+#    Time-frequency misfit and goodness-of-fit criteria
+#    for quantitative comparison of time signals.
+#    Geophys. J. Int. 178, 813-825,
+#    doi: 10.1111/j.1365-246X.2009.04177.x.
 
-=====================================================================
-"""
+# =====================================================================
+
+using HDF5
 
 # ============================================================
 # GLOBAL (ported from Fortran MODULE GLOBAL)
@@ -693,6 +693,96 @@ function write_2d_slices(filename::String, arr, mt::Int, nf_tf::Int)
     end
 end
 
+# function write_hdf5(
+#     filename::String,
+#     tfem, tfpm, tem, tpm, fem, fpm, em, pm, cwt1, cwt2,
+#     dt, fmin, fmax
+# )
+#     println("Writing HDF5 file: $filename"); flush(stdout)
+
+#     h5open(filename, "w") do f
+#         # Metadata
+#         f["dt"] = dt
+#         f["fmin"] = fmin
+#         f["fmax"] = fmax
+
+#         # Scalars per component
+#         f["EM"] = em
+#         f["PM"] = pm
+
+#         # Time-frequency
+#         f["TFEM"] = Float32.(tfem)
+#         f["TFPM"] = Float32.(tfpm)
+
+#         # Marginals
+#         f["TEM"] = Float32.(tem)
+#         f["TPM"] = Float32.(tpm)
+#         f["FEM"] = Float32.(fem)
+#         f["FPM"] = Float32.(fpm)
+
+#         # Wavelet power
+#         f["CWT1"] = Float32.(cwt1)
+#         f["CWT2"] = Float32.(cwt2)
+#     end
+
+#     println("HDF5 write complete."); flush(stdout)
+# end
+function write_hdf5(
+    filename::String,
+    s1, s2,
+    tfem, tfpm, tem, tpm, fem, fpm, em, pm, cwt1, cwt2,
+    dt, fmin, fmax
+)
+    println("Writing HDF5 file with compression: $filename"); flush(stdout)
+
+    s132   = Float32.(s1)
+    s232   = Float32.(s2)
+    tfem32 = Float32.(tfem)
+    tfpm32 = Float32.(tfpm)
+    tem32  = Float32.(tem)
+    tpm32  = Float32.(tpm)
+    fem32  = Float32.(fem)
+    fpm32  = Float32.(fpm)
+    em32   = Float32.(em)
+    pm32   = Float32.(pm)
+    cwt132 = Float32.(cwt1)
+    cwt232 = Float32.(cwt2)
+
+    h5open(filename, "w") do f
+        f["dt"] = dt
+        f["fmin"] = fmin
+        f["fmax"] = fmax
+
+        f["EM"] = em32
+        f["PM"] = pm32
+
+        # Signals: (nc, mt)
+        chunk_sig = (size(s132, 1), min(size(s132, 2), 1024))
+        f["S1", chunk=chunk_sig, shuffle=true, compress=4] = s132
+        f["S2", chunk=chunk_sig, shuffle=true, compress=4] = s232
+
+        # 3D arrays: (nc, mt, nf)
+        nc, mt, nf = size(tfem32)
+        chunk3 = (nc, min(mt, 256), min(nf, 32))
+
+        f["TFEM", chunk=chunk3, shuffle=true, compress=4] = tfem32
+        f["TFPM", chunk=chunk3, shuffle=true, compress=4] = tfpm32
+        f["CWT1", chunk=chunk3, shuffle=true, compress=4] = cwt132
+        f["CWT2", chunk=chunk3, shuffle=true, compress=4] = cwt232
+
+        # Time marginals: (nc, mt)
+        chunk2_t = (size(tem32, 1), min(size(tem32, 2), 1024))
+        f["TEM", chunk=chunk2_t, shuffle=true, compress=4] = tem32
+        f["TPM", chunk=chunk2_t, shuffle=true, compress=4] = tpm32
+
+        # Frequency marginals: (nc, nf)
+        chunk2_f = (size(fem32, 1), min(size(fem32, 2), 256))
+        f["FEM", chunk=chunk2_f, shuffle=true, compress=4] = fem32
+        f["FPM", chunk=chunk2_f, shuffle=true, compress=4] = fpm32
+    end
+
+    println("HDF5 compressed write complete."); flush(stdout)
+end
 
 # ============================================================
 # MAIN
@@ -755,26 +845,19 @@ function main(input_file::String="HF_TF-MISFIT_GOF")
 
     open(s1_name, "r") do f1
         open(s2_name, "r") do f2
-            open("S1.DAT", "w") do out1
-                open("S2.DAT", "w") do out2
-                    for i in 1:mt
-                        row1 = parse.(Float64, split(readline(f1)))
-                        row2 = parse.(Float64, split(readline(f2)))
+            for i in 1:mt
+                row1 = parse.(Float64, split(readline(f1)))
+                row2 = parse.(Float64, split(readline(f2)))
 
-                        vals1 = row1[2:min(1 + nc, end)]
-                        vals2 = row2[2:min(1 + nc, end)]
-                        if length(vals1) != nc || length(vals2) != nc
-                            error("Row $i in input files does not contain NC=$nc values.")
-                        end
+                vals1 = row1[2:min(1 + nc, end)]
+                vals2 = row2[2:min(1 + nc, end)]
+                if length(vals1) != nc || length(vals2) != nc
+                    error("Row $i in input files does not contain NC=$nc values.")
+                end
 
-                        for j in 1:nc
-                            s1[j, i] = vals1[j]
-                            s2[j, i] = vals2[j]
-                        end
-
-                        println(out1, string(dt * (i - 1), " ", join((string(s1[j, i]) for j in 1:nc), " ")))
-                        println(out2, string(dt * (i - 1), " ", join((string(s2[j, i]) for j in 1:nc), " ")))
-                    end
+                for j in 1:nc
+                    s1[j, i] = vals1[j]
+                    s2[j, i] = vals2[j]
                 end
             end
         end
@@ -793,44 +876,20 @@ function main(input_file::String="HF_TF-MISFIT_GOF")
     end
     println("Finished TF misfit computation"); flush(stdout)
 
-    open("MISFIT-GOF.DAT", "w") do io
-        println(io, "$fmin $fmax")
-        println(io, "$nf_tf $mt")
-        println(io, "$dt $nc")
-        println(io, max(maximum(abs.(s1)), maximum(abs.(s2))))
-        for j in 1:nc
-            println(io, "$(em[j]) $(pm[j])")
-        end
-        for j in 1:nc
-            println(io, "$(A * exp(-abs(em[j])^K)) $(A * (1.0 - abs(pm[j])^K))")
-        end
-        println(io, "$(maximum(abs.(tfem))) $(maximum(abs.(tfpm)))")
-        println(io, "$(maximum(abs.(fem))) $(maximum(abs.(fpm)))")
-        println(io, "$(maximum(abs.(tem))) $(maximum(abs.(tpm)))")
-        println(io, "$(maximum(abs.(cwt1))) $(maximum(abs.(cwt2)))")
-    end
+    # ------------------------------------------------------------
+    # HDF5 OUTPUT
+    # ------------------------------------------------------------
+    write_hdf5(
+        "results.h5",
+        s1, s2,
+        tfem, tfpm, tem, tpm, fem, fpm, em, pm, cwt1, cwt2,
+        dt, fmin, fmax
+    )
 
-    for j in 1:nc
-        char = string(j)
-        write_2d_slices("TFEM" * char * ".DAT", tfem[j, :, :], mt, nf_tf)
-        write_2d_slices("TFPM" * char * ".DAT", tfpm[j, :, :], mt, nf_tf)
-        write_1d("TEM" * char * ".DAT", tem[j, :])
-        write_1d("TPM" * char * ".DAT", tpm[j, :])
-        write_1d("FEM" * char * ".DAT", fem[j, :])
-        write_1d("FPM" * char * ".DAT", fpm[j, :])
-        write_2d_slices("TFRS1_" * char * ".DAT", cwt1[j, :, :], mt, nf_tf)
-        write_2d_slices("TFRS2_" * char * ".DAT", cwt2[j, :, :], mt, nf_tf)
-    end
-
-    for j in 1:nc
-        char = string(j)
-        write_2d_slices("TFEG" * char * ".DAT", A .* exp.(-abs.(tfem[j, :, :]).^K), mt, nf_tf)
-        write_2d_slices("TFPG" * char * ".DAT", A .* (1.0 .- abs.(tfpm[j, :, :]).^K), mt, nf_tf)
-        write_1d("TEG" * char * ".DAT", A .* exp.(-abs.(tem[j, :]).^K))
-        write_1d("TPG" * char * ".DAT", A .* (1.0 .- abs.(tpm[j, :]).^K))
-        write_1d("FEG" * char * ".DAT", A .* exp.(-abs.(fem[j, :]).^K))
-        write_1d("FPG" * char * ".DAT", A .* (1.0 .- abs.(fpm[j, :]).^K))
-    end
+    
+    println("Wrote compact outputs:")
+    println("  - results.h5")
+    flush(stdout)
 end
 
 
