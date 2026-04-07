@@ -1,113 +1,85 @@
-# ============================================================
-# MAIN
-# ============================================================
-function main(input_file::String="HF_TF-MISFIT_GOF")
-    A = 10.0
-    K = 1.0
+using Dates
 
-    fmin = -999999.0
-    fmax = -999999.0
-    is_s2_reference = false
-    local_norm = false
-    nc = 1
-
-    params = read_fortran_namelist_input(input_file)
-
-    mt = parse(Int, params["MT"])
-    dt = parse(Float64, params["DT"])
-    s1_name = strip_quotes(params["S1_NAME"])
-    s2_name = strip_quotes(params["S2_NAME"])
-
-    if haskey(params, "NC")
-        nc = parse(Int, params["NC"])
-    end
-    if haskey(params, "FMIN")
-        fmin = parse(Float64, params["FMIN"])
-    end
-    if haskey(params, "FMAX")
-        fmax = parse(Float64, params["FMAX"])
-    end
-    if haskey(params, "IS_S2_REFERENCE")
-        is_s2_reference = parse_fortran_logical(params["IS_S2_REFERENCE"])
-    end
-    if haskey(params, "LOCAL_NORM")
-        local_norm = parse_fortran_logical(params["LOCAL_NORM"])
-    end
-
-    if fmin == -999999.0
-        fmin = 1.0 / float(mt) / dt
-    end
-    if fmax == -999999.0
-        fmax = 1.0 / 2.0 / dt
-    end
-
-    ff = 1.0 + 1.0 / sqrt(2.0) / W0 / 30.0
-    nf_tf = 1 + Int(floor(log(fmax / fmin) / log(ff)))
-
-    println("mt = ", mt)
-    println("nc = ", nc)
-    println("nf_tf = ", nf_tf)
-    println("NF = ", NF)
-
-    n = nc * mt * nf_tf
-    println("3D Float64 array ~ ", round(n * 8 / 1024^2, digits=2), " MB")
-    println("3D ComplexF64 array ~ ", round(n * 16 / 1024^2, digits=2), " MB")
-    flush(stdout)
-
-    s1 = zeros(Float64, nc, mt)
-    s2 = zeros(Float64, nc, mt)
-
-    open(s1_name, "r") do f1
-        open(s2_name, "r") do f2
-            for i in 1:mt
-                row1 = parse.(Float64, split(readline(f1)))
-                row2 = parse.(Float64, split(readline(f2)))
-
-                vals1 = row1[2:min(1 + nc, end)]
-                vals2 = row2[2:min(1 + nc, end)]
-                if length(vals1) != nc || length(vals2) != nc
-                    error("Row $i in input files does not contain NC=$nc values.")
-                end
-
-                for j in 1:nc
-                    s1[j, i] = vals1[j]
-                    s2[j, i] = vals2[j]
-                end
-            end
-        end
-    end
-
-    if local_norm
-        println("Using LOCAL normalization"); flush(stdout)
-        tfem, tfpm, tem, tpm, fem, fpm, em, pm, cwt1, cwt2 = tf_misfits_loc(
-            s1, s2, nc, dt, mt, fmin, fmax, nf_tf, is_s2_reference
-        )
-    else
-        println("Using GLOBAL normalization"); flush(stdout)
-        tfem, tfpm, tem, tpm, fem, fpm, em, pm, cwt1, cwt2 = tf_misfits_glob(
-            s1, s2, nc, dt, mt, fmin, fmax, nf_tf, is_s2_reference
-        )
-    end
-    println("Finished TF misfit computation"); flush(stdout)
-
-    # ------------------------------------------------------------
-    # HDF5 OUTPUT
-    # ------------------------------------------------------------
-    write_hdf5(
-        "results.h5",
-        s1, s2,
-        tfem, tfpm, tem, tpm, fem, fpm, em, pm, cwt1, cwt2,
-        dt, fmin, fmax
-    )
-
-    
-    println("Wrote compact outputs:")
-    println("  - results.h5")
-    flush(stdout)
+function _parse_bool(x::AbstractString)
+    y = lowercase(strip(x))
+    y in ("true", "t", "1", "yes") && return true
+    y in ("false", "f", "0", "no") && return false
+    error("Invalid boolean value: $x")
 end
 
+function _parse_kv_args(args)
+    opts = Dict{String,String}()
+    i = 1
+    while i <= length(args)
+        key = args[i]
+        startswith(key, "--") || error("Expected option starting with --, got: $key")
+        i == length(args) && error("Missing value for option $key")
+        opts[key] = args[i + 1]
+        i += 2
+    end
+    return opts
+end
 
-if abspath(PROGRAM_FILE) == @__FILE__
-    input_file = isempty(ARGS) ? "HF_TF-MISFIT_GOF" : ARGS[1]
-    main(input_file)
+function print_usage()
+    println("""
+Usage:
+  tfmisfit prepare  --input-csv <csv> --workdir <dir> [--local-norm <true|false>]
+  tfmisfit run      --workdir <dir> [--input-file <name>]
+  tfmisfit plot     --workdir <dir> --figdir <dir> [--local-norm <true|false>]
+  tfmisfit pipeline [--input-csv <csv>] [--local-norm <true|false>] [--runs-dir <dir>]
+  tfmisfit validate --example-dir <dir>
+
+Examples:
+  julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' pipeline --local-norm false
+  julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' run --workdir examples/global
+""")
+end
+
+function main(args=ARGS)
+    isempty(args) && return print_usage()
+
+    cmd = args[1]
+    opts = _parse_kv_args(args[2:end])
+
+    if cmd == "prepare"
+        input_csv = get(opts, "--input-csv", error("Missing --input-csv"))
+        workdir = get(opts, "--workdir", error("Missing --workdir"))
+        local_norm = _parse_bool(get(opts, "--local-norm", "false"))
+        input_path = joinpath(workdir, "HF_TF-MISFIT_GOF")
+        run_prepare(input_path, input_csv; local_norm=local_norm)
+        println("Prepared input: ", abspath(input_path))
+        return
+
+    elseif cmd == "run"
+        workdir = get(opts, "--workdir", error("Missing --workdir"))
+        input_file = get(opts, "--input-file", "HF_TF-MISFIT_GOF")
+        summary = run_compute(workdir=workdir, input_file=input_file)
+        println("Finished. Summary: ", abspath(summary))
+        return
+
+    elseif cmd == "plot"
+        workdir = get(opts, "--workdir", error("Missing --workdir"))
+        figdir = get(opts, "--figdir", error("Missing --figdir"))
+        local_norm = _parse_bool(get(opts, "--local-norm", "false"))
+        run_plot(workdir, figdir; local_norm=local_norm)
+        println("Plots written to: ", abspath(figdir))
+        return
+
+    elseif cmd == "pipeline"
+        input_csv = get(opts, "--input-csv", joinpath("data", "probe_ricker_wavelet.csv"))
+        local_norm = _parse_bool(get(opts, "--local-norm", "false"))
+        runs_dir = get(opts, "--runs-dir", joinpath(normpath(joinpath(@__DIR__, "..")), "runs"))
+        result = run_pipeline(input_csv=input_csv, local_norm=local_norm, runs_dir=runs_dir)
+        println("Run folder: ", abspath(result.run_dir))
+        println("Summary file: ", abspath(result.summary_file))
+        return
+
+    elseif cmd == "validate"
+        example_dir = get(opts, "--example-dir", error("Missing --example-dir"))
+        validate_example_run(example_dir)
+        println("Validation passed for: ", abspath(example_dir))
+        return
+    else
+        return print_usage()
+    end
 end

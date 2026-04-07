@@ -342,21 +342,6 @@ If you use this software, please cite the project metadata in `CITATION.cff` and
 
 ---
 
+## License
 
-## Author
-
-**Martí Circuns-Duxans**
-Barcelona Supercomputing Center (BSC-CNS)
-
-📧 [marti.circuns@bsc.es](mailto:marti.circuns@bsc.es)
-
-🌐 https://sites.google.com/view/marticircuns
-
-Adapted from the original Fortran95 implementation by
-Miriam Kristeková, Jozef Kristek, and Peter Moczo
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+This project is distributed under the license provided in `LICENSE`.
