@@ -37,10 +37,14 @@ Typical use cases include:
 - Julia-based TF misfit / GOF implementation
 - Morlet-based continuous wavelet transform
 - Global and local normalization modes
-- Detailed outputs in legacy `.DAT` format
+- Split Julia package structure under `src/`
+- Julia CLI for `prepare`, `run`, `plot`, `pipeline`, and `validate`
+- Legacy `.DAT` outputs for compatibility
+- `results.h5` output for plotting and downstream inspection
 - Python preprocessing and plotting helpers
 - Reproducible example folders
-- Julia CLI for `prepare`, `run`, `plot`, `pipeline`, and `validate`
+- Automated tests under `test/`
+- CI workflows under `.github/workflows/`
 
 ---
 
@@ -58,6 +62,7 @@ TF_MISFIT_GOF_JULIA/
 ├── CITATION.cff
 ├── LICENSE
 ├── Project.toml
+├── Manifest.toml              # Optional, depending on workflow / branch state
 ├── README.md
 ├── TF_MISFIT_GOF_CRITERIA_Julia_User_Guide.pdf
 ├── TF_MISFIT_GOF_CRITERIA_Users_Guide.pdf
@@ -70,6 +75,7 @@ TF_MISFIT_GOF_JULIA/
 
 ### Julia
 
+- Julia 1.9 or newer supported
 - Julia 1.10 or newer recommended
 
 ### Python
@@ -95,6 +101,12 @@ Instantiate the Julia environment:
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
+Run the test suite:
+
+```bash
+julia --project=. -e 'using Pkg; Pkg.test()'
+```
+
 ---
 
 ## Quick start
@@ -110,7 +122,7 @@ Using the shell wrapper:
 Or directly through the Julia CLI:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' pipeline --local-norm false
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli(["pipeline","--local-norm","false"])'
 ```
 
 This will:
@@ -118,7 +130,10 @@ This will:
 1. create a new dated run directory under `runs/`,
 2. build the `HF_TF-MISFIT_GOF` input file from `data/probe_ricker_wavelet.csv`,
 3. run the Julia TF misfit / GOF engine,
-4. generate figures in the run's `figures/` directory.
+4. write legacy `.DAT` outputs and `results.h5`,
+5. generate figures in the run's `figures/` directory.
+
+`TFMisfitGOF.main()` is kept as a compatibility alias for the CLI entrypoint, but `main_cli(...)` is the most explicit interface for scripted usage.
 
 ---
 
@@ -131,18 +146,22 @@ The Julia CLI is the recommended interface.
 Run the full workflow:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' pipeline \
-  --input-csv data/probe_ricker_wavelet.csv \
-  --local-norm false
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "pipeline",
+  "--input-csv","data/probe_ricker_wavelet.csv",
+  "--local-norm","false"
+])'
 ```
 
 Optional:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' pipeline \
-  --input-csv data/probe_ricker_wavelet.csv \
-  --local-norm true \
-  --runs-dir runs
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "pipeline",
+  "--input-csv","data/probe_ricker_wavelet.csv",
+  "--local-norm","true",
+  "--runs-dir","runs"
+])'
 ```
 
 ### `prepare`
@@ -150,10 +169,12 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' pipeline \
 Generate a working `HF_TF-MISFIT_GOF` input file from a CSV:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' prepare \
-  --input-csv data/probe_ricker_wavelet.csv \
-  --workdir runs/dev/work \
-  --local-norm false
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "prepare",
+  "--input-csv","data/probe_ricker_wavelet.csv",
+  "--workdir","runs/dev/work",
+  "--local-norm","false"
+])'
 ```
 
 ### `run`
@@ -161,9 +182,11 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' prepare \
 Run the Julia engine inside a working directory:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' run \
-  --workdir runs/dev/work \
-  --input-file HF_TF-MISFIT_GOF
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "run",
+  "--workdir","runs/dev/work",
+  "--input-file","HF_TF-MISFIT_GOF"
+])'
 ```
 
 ### `plot`
@@ -171,25 +194,29 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' run \
 Portable default:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' plot \
-  --workdir runs/dev/work \
-  --figdir runs/dev/figures \
-  --local-norm false \
-  --usetex false \
-  --style portable \
-  --format png
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "plot",
+  "--workdir","runs/dev/work",
+  "--figdir","runs/dev/figures",
+  "--local-norm","false",
+  "--usetex","false",
+  "--style","portable",
+  "--format","png"
+])'
 ```
 
 Publication-style figures:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' plot \
-  --workdir runs/dev/work \
-  --figdir runs/dev/figures \
-  --local-norm false \
-  --usetex true \
-  --style publication \
-  --format both
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "plot",
+  "--workdir","runs/dev/work",
+  "--figdir","runs/dev/figures",
+  "--local-norm","false",
+  "--usetex","true",
+  "--style","publication",
+  "--format","both"
+])'
 ```
 
 ### `validate`
@@ -197,8 +224,19 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' plot \
 Validate one of the bundled examples:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' validate \
-  --example-dir examples/global
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "validate",
+  "--example-dir","examples/global"
+])'
+```
+
+You can also validate the local-normalization example:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "validate",
+  "--example-dir","examples/local"
+])'
 ```
 
 ---
@@ -208,7 +246,10 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' validate \
 ### Example 1: validate a bundled example
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' validate --example-dir examples/global
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "validate",
+  "--example-dir","examples/global"
+])'
 ```
 
 ### Example 2: run step-by-step
@@ -216,27 +257,46 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' validate --example-
 Prepare input:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' prepare \
-  --input-csv data/probe_ricker_wavelet.csv \
-  --workdir runs/manual/work \
-  --local-norm false
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "prepare",
+  "--input-csv","data/probe_ricker_wavelet.csv",
+  "--workdir","runs/manual/work",
+  "--local-norm","false"
+])'
 ```
 
 Run solver:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' run \
-  --workdir runs/manual/work \
-  --input-file HF_TF-MISFIT_GOF
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "run",
+  "--workdir","runs/manual/work",
+  "--input-file","HF_TF-MISFIT_GOF"
+])'
 ```
 
 Plot results:
 
 ```bash
-julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main()' plot \
-  --workdir runs/manual/work \
-  --figdir runs/manual/figures \
-  --local-norm false
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "plot",
+  "--workdir","runs/manual/work",
+  "--figdir","runs/manual/figures",
+  "--local-norm","false",
+  "--usetex","false",
+  "--style","portable",
+  "--format","png"
+])'
+```
+
+### Example 3: run the full pipeline
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "pipeline",
+  "--input-csv","data/probe_ricker_wavelet.csv",
+  "--local-norm","false"
+])'
 ```
 
 ---
@@ -255,11 +315,23 @@ The repository also includes:
 - `data/` for CSV-based inputs,
 - `examples/` for reproducible reference runs.
 
+The generated namelist currently uses keys such as:
+
+- `S1_NAME`
+- `S2_NAME`
+- `NC`
+- `MT`
+- `DT`
+- `FMIN`
+- `FMAX`
+- `IS_S2_REFERENCE`
+- `LOCAL_NORM`
+
 ---
 
 ## Outputs
 
-The solver generates multiple legacy `.DAT` files.
+The solver generates legacy `.DAT` files and a structured HDF5 file.
 
 ### Time-frequency outputs
 
@@ -282,11 +354,57 @@ The solver generates multiple legacy `.DAT` files.
 - `FEGx.DAT`
 - `FPGx.DAT`
 
+### Wavelet outputs
+
+- `CWT1x.DAT`
+- `CWT2x.DAT`
+
 ### Summary output
 
 - `MISFIT-GOF.DAT`
 
+### Structured output
+
+- `results.h5`
+
 Depending on the workflow, generated figures are written to the selected figure directory.
+
+---
+
+## Plotting modes
+
+The plotting workflow supports two styles:
+
+- `portable` — recommended default, works without LaTeX
+- `publication` — publication-style figures, optionally with `--usetex true`
+
+Recommended portable plotting:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "plot",
+  "--workdir","runs/dev/work",
+  "--figdir","runs/dev/figures",
+  "--local-norm","false",
+  "--usetex","false",
+  "--style","portable",
+  "--format","png"
+])'
+```
+
+Publication-style plotting:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "plot",
+  "--workdir","runs/dev/work",
+  "--figdir","runs/dev/figures_pub",
+  "--local-norm","false",
+  "--usetex","true",
+  "--style","publication",
+  "--format","both"
+])'
+```
 
 ---
 
@@ -310,7 +428,7 @@ The main ingredients are:
 ## Notes on output format
 
 - Output files are written in legacy ASCII `.DAT` format.
-- Some outputs are not simple rectangular tables and may need to be read sequentially.
+- A structured `results.h5` file is also written for plotting and downstream inspection.
 - Time-frequency arrays are logically structured as `(NF_TF × MT)`.
 - Large output files are expected for dense runs.
 
@@ -328,6 +446,14 @@ Or directly:
 
 ```bash
 julia --project=. test/runtests.jl
+```
+
+Useful checks during development:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; println(TFMisfitGOF.KN)'
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli(["validate","--example-dir","examples/global"])'
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli(["pipeline","--local-norm","false"])'
 ```
 
 CI workflows live under `.github/workflows/`.
@@ -357,21 +483,20 @@ If you use this software, please cite the project metadata in `CITATION.cff` and
 
 ---
 
-
 ## Author
 
-**Martí Circuns-Duxans**
+**Martí Circuns-Duxans**  
 Barcelona Supercomputing Center (BSC-CNS)
 
 📧 [marti.circuns@bsc.es](mailto:marti.circuns@bsc.es)
 
 🌐 https://sites.google.com/view/marticircuns
 
-Adapted from the original Fortran95 implementation by
+Adapted from the original Fortran95 implementation by  
 Miriam Kristeková, Jozef Kristek, and Peter Moczo
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
