@@ -9,6 +9,16 @@ This repository contains:
 - reproducible example runs,
 - a CLI-driven workflow for preparing inputs, running the solver, validating examples, and generating figures.
 
+> **Release status:** `v0.1.0` is the first tagged release of the Julia package.
+>
+> **Supported Julia versions:** Julia `1.9+` is supported, matching `Project.toml`. Julia `1.10+` is recommended for day-to-day use.
+>
+> **Interface contract:**
+> - `results.h5` is the canonical output of a run.
+> - Legacy ASCII `.DAT` files are available for backward compatibility via `--legacy-output h5|summary|full`.
+> - `TFMisfitGOF.main_cli(...)` is the explicit scripted entrypoint.
+> - `TFMisfitGOF.main()` is retained as a compatibility alias.
+
 ---
 
 ## Overview
@@ -39,8 +49,8 @@ Typical use cases include:
 - Global and local normalization modes
 - Split Julia package structure under `src/`
 - Julia CLI for `prepare`, `run`, `plot`, `pipeline`, and `validate`
-- Legacy `.DAT` outputs for compatibility
-- `results.h5` output for plotting and downstream inspection
+- Canonical `results.h5` output for plotting and downstream inspection
+- Configurable legacy ASCII `.DAT` compatibility outputs via `--legacy-output h5|summary|full`
 - Python preprocessing and plotting helpers
 - Reproducible example folders
 - Automated tests under `test/`
@@ -75,8 +85,15 @@ TF_MISFIT_GOF_JULIA/
 
 ### Julia
 
-- Julia 1.9 or newer supported
-- Julia 1.10 or newer recommended
+- **Supported:** Julia 1.9 or newer
+- **Recommended:** Julia 1.10 or newer
+
+This matches the package compatibility declared in `Project.toml`:
+
+```toml
+[compat]
+julia = "1.9"
+```
 
 ### Python
 
@@ -130,10 +147,11 @@ This will:
 1. create a new dated run directory under `runs/`,
 2. build the `HF_TF-MISFIT_GOF` input file from `data/probe_ricker_wavelet.csv`,
 3. run the Julia TF misfit / GOF engine,
-4. write legacy `.DAT` outputs and `results.h5`,
-5. generate figures in the run's `figures/` directory.
+4. write the canonical `results.h5` output,
+5. optionally write legacy `.DAT` outputs depending on `--legacy-output`,
+6. generate figures in the run's `figures/` directory.
 
-`TFMisfitGOF.main()` is kept as a compatibility alias for the CLI entrypoint, but `main_cli(...)` is the most explicit interface for scripted usage.
+`TFMisfitGOF.main_cli(...)` is the explicit scripted interface. `TFMisfitGOF.main()` is retained as a compatibility alias.
 
 ---
 
@@ -185,7 +203,19 @@ Run the Julia engine inside a working directory:
 julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
   "run",
   "--workdir","runs/dev/work",
-  "--input-file","HF_TF-MISFIT_GOF"
+  "--input-file","HF_TF-MISFIT_GOF",
+  "--legacy-output","summary"
+])'
+```
+
+Minimal modern output:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "run",
+  "--workdir","runs/dev/work",
+  "--input-file","HF_TF-MISFIT_GOF",
+  "--legacy-output","h5"
 ])'
 ```
 
@@ -239,7 +269,21 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
 ])'
 ```
 
-Lean modern workflow:
+### Output policy
+
+`results.h5` is the canonical output format for modern workflows.
+
+Legacy ASCII `.DAT` files remain available for backward compatibility with older workflows, external scripts, and existing users. They are controlled with:
+
+- `--legacy-output h5`      → write only `results.h5`
+- `--legacy-output summary` → write `results.h5` + `MISFIT-GOF.DAT`
+- `--legacy-output full`    → write `results.h5` + all legacy `.DAT`
+
+The default is `summary`.
+
+For scripted usage, prefer `TFMisfitGOF.main_cli(...)`. `TFMisfitGOF.main()` is supported as a compatibility alias.
+
+Lean modern workflow (`results.h5` only):
 
 ```bash
 julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
@@ -250,7 +294,8 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
 ])'
 ```
 
-Full legacy export
+Full legacy export:
+
 ```bash
 julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
   "pipeline",
@@ -259,19 +304,6 @@ julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
   "--legacy-output","full"
 ])'
 ```
-
-
-### Output policy
-
-`results.h5` is the canonical output format.
-
-Legacy ASCII `.DAT` files remain available for backward compatibility and can be controlled with:
-
-- `--legacy-output h5`      → write only `results.h5`
-- `--legacy-output summary` → write `results.h5` + `MISFIT-GOF.DAT`
-- `--legacy-output full`    → write `results.h5` + all legacy `.DAT`
-
-The default is `summary`.
 
 ---
 
@@ -365,41 +397,39 @@ The generated namelist currently uses keys such as:
 
 ## Outputs
 
-The solver generates legacy `.DAT` files and a structured HDF5 file.
+The solver always generates a structured HDF5 output file and can optionally generate legacy ASCII `.DAT` files for compatibility.
 
-### Time-frequency outputs
+### Canonical output
+
+- `results.h5` — canonical structured output for plotting and downstream inspection
+
+### Compatibility summary output
+
+- `MISFIT-GOF.DAT` — written in `summary` and `full` modes
+
+### Full legacy compatibility outputs
+
+Written only in `full` mode:
+
+#### Time-frequency outputs
 
 - `TFEMx.DAT` — envelope misfit
 - `TFPMx.DAT` — phase misfit
-- `TFEGx.DAT` — GOF from envelope misfit
-- `TFPGx.DAT` — GOF from phase misfit
 
-### Time-dependent outputs
+#### Time-dependent outputs
 
 - `TEMx.DAT`
 - `TPMx.DAT`
-- `TEGx.DAT`
-- `TPGx.DAT`
 
-### Frequency-dependent outputs
+#### Frequency-dependent outputs
 
 - `FEMx.DAT`
 - `FPMx.DAT`
-- `FEGx.DAT`
-- `FPGx.DAT`
 
-### Wavelet outputs
+#### Wavelet outputs
 
 - `CWT1x.DAT`
 - `CWT2x.DAT`
-
-### Summary output
-
-- `MISFIT-GOF.DAT`
-
-### Structured output
-
-- `results.h5`
 
 Depending on the workflow, generated figures are written to the selected figure directory.
 
@@ -461,10 +491,10 @@ The main ingredients are:
 
 ## Notes on output format
 
-- Output files are written in legacy ASCII `.DAT` format.
-- A structured `results.h5` file is also written for plotting and downstream inspection.
+- Output files can be written in legacy ASCII `.DAT` format for compatibility.
+- A structured `results.h5` file is always written as the canonical run artifact.
 - Time-frequency arrays are logically structured as `(NF_TF × MT)`.
-- Large output files are expected for dense runs.
+- Large output files are expected for dense runs, especially in `--legacy-output full` mode.
 
 ---
 
@@ -489,6 +519,8 @@ julia --project=. -e 'using TFMisfitGOF; println(TFMisfitGOF.KN)'
 julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli(["validate","--example-dir","examples/global"])'
 julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli(["pipeline","--local-norm","false"])'
 ```
+
+For scripted automation and CI-style usage, prefer `TFMisfitGOF.main_cli(...)` over `TFMisfitGOF.main()`.
 
 CI workflows live under `.github/workflows/`.
 
