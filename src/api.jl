@@ -10,9 +10,15 @@ function main_legacy(input_file::AbstractString="HF_TF-MISFIT_GOF";
     return run_from_inputfile(input_file; legacy_output=legacy_output)
 end
 
-function run_prepare(input_path::AbstractString, input_csv_path::AbstractString;
-                     local_norm::Bool=false,
-                     base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")))
+function run_prepare(
+    input_path::AbstractString,
+    input_csv_path::AbstractString;
+    local_norm::Bool=false,
+    t_start::Union{Nothing,Real}=nothing,
+    t_end::Union{Nothing,Real}=nothing,
+    dt_target::Union{Nothing,Real}=nothing,
+    base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")),
+)
     script = joinpath(base_dir, "scripts", "build_tf_misfit_signals.py")
     isfile(script) || error("Preprocess script not found: $script")
     isfile(input_csv_path) || error("Input CSV not found: $input_csv_path")
@@ -20,6 +26,17 @@ function run_prepare(input_path::AbstractString, input_csv_path::AbstractString;
     mkpath(dirname(input_path))
 
     cmd = `python3 $script $input_path $input_csv_path $(lowercase(string(local_norm)))`
+
+    if t_start !== nothing
+        cmd = `$cmd --t-start $(string(Float64(t_start)))`
+    end
+    if t_end !== nothing
+        cmd = `$cmd --t-end $(string(Float64(t_end)))`
+    end
+    if dt_target !== nothing
+        cmd = `$cmd --dt-target $(string(Float64(dt_target)))`
+    end
+
     run(cmd)
 
     isfile(input_path) || error("Expected generated input file not found: $input_path")
@@ -80,32 +97,50 @@ function create_run_dirs(; runs_dir::AbstractString,
     return (run_name=run_name, run_dir=run_dir, work_dir=work_dir, fig_dir=fig_dir, log_dir=log_dir)
 end
 
-function run_pipeline(; input_csv::AbstractString=joinpath("data", "probe_ricker_wavelet.csv"),
-                      local_norm::Bool=false,
-                      usetex::Bool=false,
-                      format::AbstractString="png",
-                      dpi::Int=300,
-                      style::AbstractString="portable",
-                      legacy_output::AbstractString="summary",
-                      base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")),
-                      runs_dir::AbstractString=joinpath(base_dir, "runs"))
+function run_pipeline(;
+    input_csv::AbstractString=joinpath("data", "probe_ricker_wavelet.csv"),
+    local_norm::Bool=false,
+    usetex::Bool=false,
+    format::AbstractString="png",
+    dpi::Int=300,
+    style::AbstractString="portable",
+    legacy_output::AbstractString="summary",
+    t_start::Union{Nothing,Real}=nothing,
+    t_end::Union{Nothing,Real}=nothing,
+    dt_target::Union{Nothing,Real}=nothing,
+    base_dir::AbstractString=normpath(joinpath(@__DIR__, "..")),
+    runs_dir::AbstractString=joinpath(base_dir, "runs"),
+)
     dirs = create_run_dirs(runs_dir=runs_dir)
-
     input_csv_path = isabspath(input_csv) ? input_csv : joinpath(base_dir, input_csv)
     input_path = joinpath(dirs.work_dir, "HF_TF-MISFIT_GOF")
 
-    run_prepare(input_path, input_csv_path; local_norm=local_norm, base_dir=base_dir)
-    output_file = run_compute(workdir=dirs.work_dir,
-                              input_file="HF_TF-MISFIT_GOF",
-                              legacy_output=legacy_output)
+    run_prepare(
+        input_path,
+        input_csv_path;
+        local_norm=local_norm,
+        t_start=t_start,
+        t_end=t_end,
+        dt_target=dt_target,
+        base_dir=base_dir,
+    )
 
-    run_plot(dirs.work_dir, dirs.fig_dir;
-             local_norm=local_norm,
-             usetex=usetex,
-             format=format,
-             dpi=dpi,
-             style=style,
-             base_dir=base_dir)
+    output_file = run_compute(
+        workdir=dirs.work_dir,
+        input_file="HF_TF-MISFIT_GOF",
+        legacy_output=legacy_output,
+    )
+
+    run_plot(
+        dirs.work_dir,
+        dirs.fig_dir;
+        local_norm=local_norm,
+        usetex=usetex,
+        format=format,
+        dpi=dpi,
+        style=style,
+        base_dir=base_dir,
+    )
 
     return (; dirs..., output_file=output_file)
 end

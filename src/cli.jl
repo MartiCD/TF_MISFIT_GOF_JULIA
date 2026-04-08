@@ -26,11 +26,15 @@ end
 function print_usage()
     println("""
 Usage:
-  tfmisfit prepare  --input-csv <csv> --workdir <dir> [--local-norm <true|false>]
-  tfmisfit run      --workdir <dir> [--input-file <name>] [--legacy-output <h5|summary|full>]
-  tfmisfit plot     --workdir <dir> --figdir <dir> [--local-norm <true|false>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>]
-  tfmisfit pipeline [--input-csv <csv>] [--local-norm <true|false>] [--runs-dir <dir>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>] [--legacy-output <h5|summary|full>]
-  tfmisfit validate --example-dir <dir> [--legacy-output <h5|summary|full>]
+ tfmisfit prepare --input-csv <csv> --workdir <dir> [--local-norm <true|false>] [--t-start <float>] [--t-end <float>] [--dt-target <float>]
+
+ tfmisfit run --workdir <dir> [--input-file <name>] [--legacy-output <h5|summary|full>]
+
+ tfmisfit plot --workdir <dir> --figdir <dir> [--local-norm <true|false>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>]
+
+ tfmisfit pipeline [--input-csv <csv>] [--local-norm <true|false>] [--runs-dir <dir>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>] [--legacy-output <h5|summary|full>] [--t-start <float>] [--t-end <float>] [--dt-target <float>]
+
+ tfmisfit validate --example-dir <dir> [--legacy-output <h5|summary|full>]
 """)
 end
 
@@ -45,11 +49,23 @@ function main_cli(args=ARGS)
         workdir = _required_opt(opts, "--workdir")
         local_norm = _parse_bool(get(opts, "--local-norm", "false"))
 
-        input_path = joinpath(workdir, "HF_TF-MISFIT_GOF")
-        run_prepare(input_path, input_csv; local_norm=local_norm)
+        t_start = haskey(opts, "--t-start") ? parse(Float64, opts["--t-start"]) : nothing
+        t_end = haskey(opts, "--t-end") ? parse(Float64, opts["--t-end"]) : nothing
+        dt_target = haskey(opts, "--dt-target") ? parse(Float64, opts["--dt-target"]) : nothing
 
-        println("Prepared input: ", abspath(input_path))
-        return
+        input_path = joinpath(workdir, "HF_TF-MISFIT_GOF")
+
+        run_prepare(
+            input_path,
+            input_csv;
+            local_norm=local_norm,
+            t_start=t_start,
+            t_end=t_end,
+            dt_target=dt_target,
+        )
+
+    println("Prepared input: ", abspath(input_path))
+    return
 
     elseif cmd == "run"
         workdir = _required_opt(opts, "--workdir")
@@ -91,14 +107,23 @@ function main_cli(args=ARGS)
         format = get(opts, "--format", "png")
         legacy_output = get(opts, "--legacy-output", "summary")
 
-        result = run_pipeline(input_csv=input_csv,
-                              local_norm=local_norm,
-                              runs_dir=runs_dir,
-                              usetex=usetex,
-                              style=style,
-                              dpi=dpi,
-                              format=format,
-                              legacy_output=legacy_output)
+        t_start = haskey(opts, "--t-start") ? parse(Float64, opts["--t-start"]) : nothing
+        t_end = haskey(opts, "--t-end") ? parse(Float64, opts["--t-end"]) : nothing
+        dt_target = haskey(opts, "--dt-target") ? parse(Float64, opts["--dt-target"]) : nothing
+
+        result = run_pipeline(
+            input_csv=input_csv,
+            local_norm=local_norm,
+            runs_dir=runs_dir,
+            usetex=usetex,
+            style=style,
+            dpi=dpi,
+            format=format,
+            legacy_output=legacy_output,
+            t_start=t_start,
+            t_end=t_end,
+            dt_target=dt_target,
+        )
 
         println("Run folder: ", abspath(result.run_dir))
         println("Output file: ", abspath(result.output_file))

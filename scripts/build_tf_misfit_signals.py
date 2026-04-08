@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
-
-import sys
+import argparse
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 
-
 # ------------------------------------------------------------
 # User configuration
 # ------------------------------------------------------------
-VAR = 1                  # column index in CSV after the time column
+VAR = 1  # column index in CSV after the time column
 X_PROBE = 0.22572455617737594
 F0 = 10.0
 
@@ -21,15 +19,10 @@ X0 = 0.5
 C = 1.0
 L = 1.0
 
-# Export window
-# Set T_START = None to use the first available time in the CSV.
-# Set T_END   = None to use the last available time in the CSV.
-T_START = 0.0
-T_END = 10.0
-
-# Target sampling.
-# If DT_TARGET is None, the script uses the numerical sampling step.
-DT_TARGET = None
+# Defaults for optional CLI arguments
+DEFAULT_T_START = None
+DEFAULT_T_END = None
+DEFAULT_DT_TARGET = None
 
 # Interpolation kind for the numerical signal
 INTERP_KIND = "linear"
@@ -54,21 +47,48 @@ def parse_bool(value: str) -> bool:
     raise ValueError(f"Invalid boolean value: {value}. Use true or false.")
 
 
-def get_args():
-    if len(sys.argv) != 4:
-        print("Usage: python3 build_tf_misfit_signals.py OUTPUT_FILE INPUT_CSV LOCAL_NORM")
-        print("Example:")
-        print(
-            "  python3 build_tf_misfit_signals.py "
-            "runs/test/work/HF_TF-MISFIT_GOF "
-            "data/probe_signal_10f0_up_P4_Q5_CFL1.0.csv "
-            "false"
-        )
-        sys.exit(1)
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Build TF_MISFIT_GOF input files from a numerical CSV signal."
+    )
+    parser.add_argument(
+        "output_file",
+        type=Path,
+        help="Path to the generated HF_TF-MISFIT_GOF file.",
+    )
+    parser.add_argument(
+        "input_csv",
+        type=Path,
+        help="Path to the source CSV file containing the numerical signal.",
+    )
+    parser.add_argument(
+        "local_norm",
+        type=parse_bool,
+        help="true or false",
+    )
+    parser.add_argument(
+        "--t-start",
+        type=float,
+        default=DEFAULT_T_START,
+        help="Start time of exported window. Defaults to first available CSV time.",
+    )
+    parser.add_argument(
+        "--t-end",
+        type=float,
+        default=DEFAULT_T_END,
+        help="End time of exported window. Defaults to last available CSV time.",
+    )
+    parser.add_argument(
+        "--dt-target",
+        type=float,
+        default=DEFAULT_DT_TARGET,
+        help="Optional output time step. Defaults to numerical sampling step.",
+    )
 
-    output_file = Path(sys.argv[1]).expanduser().resolve()
-    input_csv = Path(sys.argv[2]).expanduser().resolve()
-    local_norm = parse_bool(sys.argv[3])
+    args = parser.parse_args()
+
+    output_file = args.output_file.expanduser().resolve()
+    input_csv = args.input_csv.expanduser().resolve()
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -77,12 +97,13 @@ def get_args():
     if not input_csv.is_file():
         raise FileNotFoundError(f"Input CSV is not a file: {input_csv}")
 
-    return output_file, input_csv, local_norm
+    return output_file, input_csv, args.local_norm, args.t_start, args.t_end, args.dt_target
 
 
 def ricker_Ez_exact_periodic(t, x_probe, *, E0=1.0, f0=10.0, x0=0.5, c=1.0, L=1.0):
     """
     Analytical periodic Ez trace at the probe location.
+
     This matches the analytical reference used in the original script.
     """
     xc = (x0 + c * t) % L
@@ -108,11 +129,10 @@ def load_probe_signal(input_csv: Path, var: int):
     Load the full numerical probe signal from CSV.
 
     The CSV is assumed to contain:
-      column 0   -> time
-      column VAR -> selected signal component/value
+      column 0 -> time column
+      VAR      -> selected signal component/value
     """
     fname = input_csv
-
     df = pd.read_csv(fname, usecols=[0, var], dtype=np.float64, engine="c")
     time = df.iloc[:, 0].to_numpy()
     signal = df.iloc[:, 1].to_numpy()
@@ -120,12 +140,10 @@ def load_probe_signal(input_csv: Path, var: int):
     if len(time) < 2:
         raise ValueError(f"Not enough rows in file: {fname}")
 
-    # Make sure time is strictly increasing.
     sort_idx = np.argsort(time)
     time = time[sort_idx]
     signal = signal[sort_idx]
 
-    # Drop duplicate times if any.
     keep = np.concatenate(([True], np.diff(time) > 0.0))
     time = time[keep]
     signal = signal[keep]
@@ -144,8 +162,6 @@ def build_uniform_grid(t_start: float, t_end: float, dt: float) -> np.ndarray:
 
     mt = int(np.floor((t_end - t_start) / dt)) + 1
     tout = t_start + dt * np.arange(mt, dtype=np.float64)
-
-    # Guard against tiny floating-point overshoots.
     tout = tout[tout <= t_end + 1e-12]
     return tout
 
@@ -184,15 +200,15 @@ def write_auxiliary_input_file(
     fmax_default = 1.0 / (2.0 * dt)
 
     text = f"""&INPUT
-  S1_NAME = '{signal1_name}',
-  S2_NAME = '{signal2_name}',
-  NC = 1,
-  MT = {mt},
-  DT = {dt:.16e},
-  FMIN = {fmin_default:.16e},
-  FMAX = {fmax_default:.16e},
-  IS_S2_REFERENCE = {'.TRUE.' if IS_S2_REFERENCE else '.FALSE.'},
-  LOCAL_NORM = {'.TRUE.' if local_norm else '.FALSE.'}
+S1_NAME = '{signal1_name}',
+S2_NAME = '{signal2_name}',
+NC = 1,
+MT = {mt},
+DT = {dt:.16e},
+FMIN = {fmin_default:.16e},
+FMAX = {fmax_default:.16e},
+IS_S2_REFERENCE = {'.TRUE.' if IS_S2_REFERENCE else '.FALSE.'},
+LOCAL_NORM = {'.TRUE.' if local_norm else '.FALSE.'}
 /
 """
     path.write_text(text, encoding="utf-8")
@@ -202,7 +218,7 @@ def write_auxiliary_input_file(
 # Main
 # ------------------------------------------------------------
 def main():
-    output_file, input_csv, local_norm = get_args()
+    output_file, input_csv, local_norm, t_start_arg, t_end_arg, dt_target_arg = parse_args()
 
     outdir = output_file.parent
     outdir.mkdir(parents=True, exist_ok=True)
@@ -213,8 +229,8 @@ def main():
     t_available_start = float(time_num_raw[0])
     t_available_end = float(time_num_raw[-1])
 
-    t_start = t_available_start if T_START is None else max(float(T_START), t_available_start)
-    t_end = t_available_end if T_END is None else min(float(T_END), t_available_end)
+    t_start = t_available_start if t_start_arg is None else max(float(t_start_arg), t_available_start)
+    t_end = t_available_end if t_end_arg is None else min(float(t_end_arg), t_available_end)
 
     if t_end <= t_start:
         raise ValueError(
@@ -222,7 +238,7 @@ def main():
             f"Available numerical range is [{t_available_start}, {t_available_end}]."
         )
 
-    dt_target = dt_num if DT_TARGET is None else float(DT_TARGET)
+    dt_target = dt_num if dt_target_arg is None else float(dt_target_arg)
     tout = build_uniform_grid(t_start, t_end, dt_target)
 
     signal1 = interpolate_to_grid(time_num_raw, signal_num_raw, tout, kind=INTERP_KIND)
@@ -263,6 +279,8 @@ def main():
     print(f"Source CSV        : {fname}")
     print(f"LOCAL_NORM        : {local_norm}")
     print(f"Output directory  : {outdir}")
+    print(f"Window start      : {t_start:.16e}")
+    print(f"Window end        : {t_end:.16e}")
     print(f"signal1.dat       : {signal1_path}")
     print(f"signal2.dat       : {signal2_path}")
     if aux_path is not None:
