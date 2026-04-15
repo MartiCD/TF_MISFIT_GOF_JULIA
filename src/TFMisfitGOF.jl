@@ -30,6 +30,17 @@ include("driver.jl")
 include("api.jl")
 include("cli.jl")
 
+# For demonstration purposes
+# we include the code to generate synthetic signals that can be used to test the TF-MISFIT-GOF implementation. 
+# This is not part of the core library functionality, but it is useful for users who want to understand 
+# how the misfit and GOF metrics behave with known signals.
+include("demo_signals.jl")
+
+export ricker_wavelet
+export make_amplitude_demo, make_shift_demo, make_mixed_demo
+export write_demo_csv
+export run_tf_metric_demo
+
 # Keep `main` as the CLI entrypoint for backward compatibility with PR3 docs.
 const main = main_cli
 

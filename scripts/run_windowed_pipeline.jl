@@ -357,6 +357,7 @@ function run_one_window(;
 
     withenv(env...) do
         TFMisfitGOF.run_plot(
+            TFMisfitGOF.WindowedPlot(),
             work_dir,
             fig_dir;
             local_norm=local_norm,
@@ -379,7 +380,8 @@ function run_one_window(;
 end
 
 function main()
-    input_csv = "data/probe_ricker_wavelet_long_time.csv"
+    # input_csv = "data/probe_ricker_wavelet_long_time.csv"
+    input_csv = "data/probe_signal_10f0_up_P4_Q5_CFL1.0.csv"
     runs_dir = "runs_windowed"
 
     stm_frames_dir = joinpath(runs_dir, "animation_frames_signals_time_marginals")
@@ -405,16 +407,16 @@ function main()
         (700.0, 710.0),
         (800.0, 810.0),
         (900.0, 910.0),
-        (1000.0, 1010.0),
-        (2000.0, 2010.0),
-        (3000.0, 3010.0),
-        (4000.0, 4010.0),
-        (5000.0, 5010.0),
-        (6000.0, 6010.0),
-        (7000.0, 7010.0),
-        (8000.0, 8010.0),
-        (9000.0, 9010.0),
-        (9989.0, 9999.0),
+        # (1000.0, 1010.0),
+        # (2000.0, 2010.0),
+        # (3000.0, 3010.0),
+        # (4000.0, 4010.0),
+        # (5000.0, 5010.0),
+        # (6000.0, 6010.0),
+        # (7000.0, 7010.0),
+        # (8000.0, 8010.0),
+        # (9000.0, 9010.0),
+        # (9989.0, 9999.0),
     ]
 
     clear_old_frames(stm_frames_dir)

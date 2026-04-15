@@ -75,3 +75,7 @@ scripts/*
 !scripts/build_tf_misfit_signals.py
 !scripts/Plot.py
 !scripts/run_windowed_pipeline.jl
+!scripts/plot_windowed.py
+!scripts/plot_run_tf_metric_demo.jl
+
+runs_demo/*
