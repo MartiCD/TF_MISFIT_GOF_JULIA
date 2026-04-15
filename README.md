@@ -51,7 +51,13 @@ Typical use cases include:
 - Julia CLI for `prepare`, `run`, `plot`, `pipeline`, and `validate`
 - Canonical `results.h5` output for plotting and downstream inspection
 - Configurable legacy ASCII `.DAT` compatibility outputs via `--legacy-output h5|summary|full`
-- Python preprocessing and plotting helpers
+- Split plotting backends:
+  - `scripts/Plot.py` for legacy plotting
+  - `scripts/plot_windowed.py` for modern HDF5/windowed plotting
+- CSV preprocessing that can use either:
+  - an analytical reference signal, or
+  - a second signal column from the input CSV
+- Synthetic demo helpers for controlled TFEM/TFPM experiments with Ricker wavelets
 - Reproducible example folders
 - Automated tests under `test/`
 - CI workflows under `.github/workflows/`
@@ -66,8 +72,16 @@ TF_MISFIT_GOF_JULIA/
 ├── data/                      # Input CSVs and working input data
 ├── examples/                  # Reproducible example runs
 ├── python/                    # Python dependency specification
-├── scripts/                   # Python preprocessing / plotting helpers
-├── src/                       # Julia source code
+├── scripts/                   # preprocessing / plotting helpers
+│   ├── build_tf_misfit_signals.py
+│   ├── Plot.py                # legacy plotting backend
+│   ├── plot_windowed.py       # modern HDF5/windowed plotting backend
+│   └── run_windowed_pipeline.jl
+├── src/
+│   ├── api.jl
+│   ├── cli.jl
+│   ├── demo_signals.jl        # synthetic TFEM/TFPM demo helpers
+│   └── ...
 ├── test/                      # Julia tests
 ├── CITATION.cff
 ├── LICENSE
@@ -154,6 +168,114 @@ This will:
 `TFMisfitGOF.main_cli(...)` is the explicit scripted interface. `TFMisfitGOF.main()` is retained as a compatibility alias.
 
 ---
+
+## TFEM / TFPM demo workflow
+
+This branch includes a small pedagogical demo for understanding what the
+time-frequency envelope misfit (TFEM) and time-frequency phase misfit (TFPM)
+measure under controlled perturbations of a Ricker wavelet.
+
+Available demo cases:
+- `amplitude` — scales one signal relative to the reference
+- `shift` — advances one signal relative to the reference
+- `mixed` — combines amplitude scaling and time shift
+
+The demo CSV layout is:
+- column 0: time
+- column 1: perturbed / test signal
+- column 2: reference signal
+
+For this workflow, preprocessing must use:
+
+- `--reference-source csv`
+- `--signal1-col 1`
+- `--signal2-col 2`
+
+Programmatic usage:
+
+```julia
+using TFMisfitGOF
+
+run_tf_metric_demo("amplitude";
+    outdir="runs_demo",
+    plot_backend=WindowedPlot(),
+)
+
+run_tf_metric_demo("shift";
+    outdir="runs_demo",
+    plot_backend=WindowedPlot(),
+)
+```
+
+Scripted usage:
+
+```bash
+julia --project=. scripts/run_tf_metric_demo.jl
+```
+
+
+Then update the `prepare` example:
+
+```markdown
+### `prepare`
+
+Generate a working `HF_TF-MISFIT_GOF` input file from a CSV:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "prepare",
+  "--input-csv","data/probe_ricker_wavelet.csv",
+  "--workdir","runs/dev/work",
+  "--local-norm","false"
+])'
+```
+
+Use a CSV-provided reference signal instead of the built-in analytical reference:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "prepare",
+  "--input-csv","runs_demo/amplitude/demo_signals.csv",
+  "--workdir","runs_demo/amplitude/work",
+  "--local-norm","false",
+  "--reference-source","csv",
+  "--signal1-col","1",
+  "--signal2-col","2"
+])'
+```
+
+
+And update the `plot` section so it reflects the new backend split:
+
+```markdown
+### `plot`
+
+Modern windowed/HDF5 plotting:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "plot",
+  "--workdir","runs/dev/work",
+  "--figdir","runs/dev/figures",
+  "--local-norm","false",
+  "--usetex","false",
+  "--style","portable",
+  "--format","png",
+  "--plot-backend","windowed"
+])'
+```
+
+Legacy plotting:
+
+```bash
+julia --project=. -e 'using TFMisfitGOF; TFMisfitGOF.main_cli([
+  "plot",
+  "--workdir","runs/dev/work",
+  "--figdir","runs/dev/figures_legacy",
+  "--local-norm","false",
+  "--plot-backend","legacy"
+])'
+```
 
 ## CLI usage
 
