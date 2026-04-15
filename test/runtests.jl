@@ -15,4 +15,5 @@ using TFMisfitGOF
 
     include("test_examples.jl")
     include("test_cli.jl")
+    include("test_demo.jl")
 end

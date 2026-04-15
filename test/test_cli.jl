@@ -57,4 +57,32 @@ end
         ])
         @test isfile(joinpath(ex_local, "results.h5"))
     end
+
+    @testset "CLI prepare parsing with csv reference mode" begin
+        opts = TFMisfitGOF._parse_kv_args([
+            "--input-csv", "demo.csv",
+            "--workdir", "runs/demo/work",
+            "--reference-source", "csv",
+            "--signal1-col", "1",
+            "--signal2-col", "2",
+        ])
+        @test opts["--reference-source"] == "csv"
+        @test opts["--signal1-col"] == "1"
+        @test opts["--signal2-col"] == "2"
+    end
+
+    @testset "plot backend dispatch" begin
+        base_dir = mktempdir()
+        scripts_dir = joinpath(base_dir, "scripts")
+        mkpath(scripts_dir)
+
+        write(joinpath(scripts_dir, "Plot.py"), "")
+        write(joinpath(scripts_dir, "plot_windowed.py"), "")
+
+        @test TFMisfitGOF.plot_script(TFMisfitGOF.LegacyPlot(), base_dir) ==
+            joinpath(scripts_dir, "Plot.py")
+
+        @test TFMisfitGOF.plot_script(TFMisfitGOF.WindowedPlot(), base_dir) ==
+            joinpath(scripts_dir, "plot_windowed.py")
+    end
 end
