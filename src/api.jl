@@ -147,10 +147,8 @@ function run_plot(backend::AbstractPlotBackend,
     return figdir
 end
 
-function run_plot(workdir::AbstractString,
-                  figdir::AbstractString;
-                  kwargs...)
-    run_plot(LegacyPlot(), workdir, figdir; kwargs...)
+function run_plot(workdir::AbstractString, figdir::AbstractString; kwargs...)
+    run_plot(WindowedPlot(), workdir, figdir; kwargs...)
 end
 
 run_plot_legacy(workdir::AbstractString, figdir::AbstractString; kwargs...) = run_plot(LegacyPlot(), workdir, figdir; kwargs...)

@@ -26,15 +26,42 @@ end
 function print_usage()
     println("""
 Usage:
- tfmisfit prepare --input-csv <csv> --workdir <dir> [--local-norm <true|false>] [--t-start <float>] [--t-end <float>] [--dt-target <float>]
+  tfmisfit prepare --input-csv <path> --workdir <dir>
+                   [--local-norm <true|false>]
+                   [--t-start <float>] [--t-end <float>] [--dt-target <float>]
+                   [--reference-source <analytic|csv>]
+                   [--signal1-col <int>] [--signal2-col <int>]
 
- tfmisfit run --workdir <dir> [--input-file <name>] [--legacy-output <h5|summary|full>]
+  tfmisfit run --workdir <dir>
+               [--input-file <name>]
+               [--legacy-output <h5|summary|full>]
 
- tfmisfit plot --workdir <dir> --figdir <dir> [--local-norm <true|false>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>]
+  tfmisfit plot --workdir <dir> --figdir <dir>
+                [--local-norm <true|false>]
+                [--usetex <true|false>]
+                [--style <portable|publication>]
+                [--dpi <int>]
+                [--format <png|pdf|both>]
+                [--plot-backend <legacy|windowed>]
 
- tfmisfit pipeline [--input-csv <csv>] [--local-norm <true|false>] [--runs-dir <dir>] [--usetex <true|false>] [--style <portable|publication>] [--dpi <int>] [--format <png|pdf|both>] [--legacy-output <h5|summary|full>] [--t-start <float>] [--t-end <float>] [--dt-target <float>]
+  tfmisfit pipeline [--input-csv <path>]
+                    [--local-norm <true|false>]
+                    [--runs-dir <dir>]
+                    [--usetex <true|false>]
+                    [--style <portable|publication>]
+                    [--dpi <int>]
+                    [--format <png|pdf|both>]
+                    [--legacy-output <h5|summary|full>]
+                    [--t-start <float>] [--t-end <float>] [--dt-target <float>]
 
- tfmisfit validate --example-dir <dir> [--legacy-output <h5|summary|full>]
+  tfmisfit validate --example-dir <dir>
+                    [--legacy-output <h5|summary|full>]
+
+Notes:
+  - prepare defaults to --reference-source analytic
+  - use --reference-source csv for demo/tutorial CSVs with:
+      column 0 = time, column 1 = signal1, column 2 = signal2
+  - plot defaults should ideally target the windowed/HDF5 plotter on this branch
 """)
 end
 
@@ -48,13 +75,14 @@ function main_cli(args=ARGS)
         input_csv = _required_opt(opts, "--input-csv")
         workdir = _required_opt(opts, "--workdir")
         local_norm = _parse_bool(get(opts, "--local-norm", "false"))
-
         t_start = haskey(opts, "--t-start") ? parse(Float64, opts["--t-start"]) : nothing
         t_end = haskey(opts, "--t-end") ? parse(Float64, opts["--t-end"]) : nothing
         dt_target = haskey(opts, "--dt-target") ? parse(Float64, opts["--dt-target"]) : nothing
+        reference_source = get(opts, "--reference-source", "analytic")
+        signal1_col = parse(Int, get(opts, "--signal1-col", "1"))
+        signal2_col = parse(Int, get(opts, "--signal2-col", "2"))
 
         input_path = joinpath(workdir, "HF_TF-MISFIT_GOF")
-
         run_prepare(
             input_path,
             input_csv;
@@ -62,10 +90,12 @@ function main_cli(args=ARGS)
             t_start=t_start,
             t_end=t_end,
             dt_target=dt_target,
+            reference_source=reference_source,
+            signal1_col=signal1_col,
+            signal2_col=signal2_col,
         )
-
-    println("Prepared input: ", abspath(input_path))
-    return
+        println("Prepared input: ", abspath(input_path))
+        return
 
     elseif cmd == "run"
         workdir = _required_opt(opts, "--workdir")
@@ -86,14 +116,19 @@ function main_cli(args=ARGS)
         style = get(opts, "--style", "portable")
         dpi = parse(Int, get(opts, "--dpi", "300"))
         format = get(opts, "--format", "png")
+        plot_backend_name = get(opts, "--plot-backend", "windowed")
 
-        run_plot(workdir, figdir;
-                 local_norm=local_norm,
-                 usetex=usetex,
-                 style=style,
-                 dpi=dpi,
-                 format=format)
+        backend =
+            plot_backend_name == "legacy" ? LegacyPlot() :
+            plot_backend_name == "windowed" ? WindowedPlot() :
+            error("Invalid --plot-backend: $plot_backend_name")
 
+        run_plot(backend, workdir, figdir;
+                local_norm=local_norm,
+                usetex=usetex,
+                style=style,
+                dpi=dpi,
+                format=format)
         println("Plots written to: ", abspath(figdir))
         return
 
